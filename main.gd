@@ -67,6 +67,10 @@ var career_losses := 0
 var career_cash := 0
 var career_reputation := 0
 var career_xp := 0
+var season_number := 1
+var season_points: Dictionary = {}
+var season_events_completed: Array = []
+var last_season_message := ""
 var last_xp_earned := 0
 var last_level_up := false
 var last_result := "No races completed"
@@ -276,6 +280,7 @@ func _show_career_dashboard() -> void:
 	status_label.text = "SEASON 1  •  ROOKIE DIVISION"
 	_clear_section()
 	var event: Dictionary = _get_selected_event()
+	_add_section_label("SEASON %d  |  EVENTS COMPLETED: %d / %d" % [season_number, season_events_completed.size(), _event_catalog().size()])
 	_add_section_label("SELECTED EVENT  |  WEEK 1")
 	_add_section_label("%s  •  %d metres  •  Prize: $%s" % [race_event_name, int(event["distance"]), str(event["reward"])])
 	var best_time := float(personal_bests.get(selected_event_id, 0.0))
@@ -310,6 +315,10 @@ func _show_career_dashboard() -> void:
 	standings_button.add_theme_color_override("font_color", Color.WHITE)
 	standings_button.pressed.connect(_show_standings)
 	section_panel.add_child(standings_button)
+	var season_button := _make_button("SEASON STANDINGS", Color("#34485d"))
+	season_button.add_theme_color_override("font_color", Color.WHITE)
+	season_button.pressed.connect(_show_season_standings)
+	section_panel.add_child(season_button)
 	var rivals_button := _make_button("RIVALS", Color("#34485d"))
 	rivals_button.add_theme_color_override("font_color", Color.WHITE)
 	rivals_button.pressed.connect(_show_rivals)
@@ -618,6 +627,45 @@ func _show_driver_profile() -> void:
 	body += "Quick Race  |  %s" % ("%.2f sec" % quick_best if quick_best > 0.0 else "No record")
 	_show_subpage("DRIVER PROFILE", body, "BACK TO CAREER")
 
+func _update_season_progress(player_won: bool) -> void:
+	last_season_message = ""
+	if season_events_completed.has(selected_event_id):
+		last_season_message = "SEASON EVENT ALREADY COMPLETED — NO EXTRA POINTS"
+		return
+	season_events_completed.append(selected_event_id)
+	var player_points := 10 if player_won else 3
+	season_points["YOU"] = int(season_points.get("YOU", 0)) + player_points
+	for name in rival_names:
+		var rival_score := 10 if randf() < 0.55 else 3
+		season_points[name] = int(season_points.get(name, 0)) + rival_score
+	last_season_message = "SEASON POINTS  |  +%d" % player_points
+	if season_events_completed.size() >= _event_catalog().size():
+		var rows: Array = []
+		for driver in ["YOU"] + rival_names:
+			rows.append({"name": driver, "points": int(season_points.get(driver, 0))})
+		rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
+		var champion := str(rows[0]["name"])
+		if champion == "YOU":
+			career_cash += 2500
+			career_reputation += 25
+			last_season_message = "SEASON %d CHAMPION! BONUS: $2,500 + 25 REP" % season_number
+		else:
+			last_season_message = "SEASON %d CHAMPION: %s" % [season_number, champion]
+		season_number += 1
+		season_points = {}
+		season_events_completed = []
+
+func _show_season_standings() -> void:
+	var rows: Array = [{"name": "YOU", "points": int(season_points.get("YOU", 0))}]
+	for name in rival_names:
+		rows.append({"name": name, "points": int(season_points.get(name, 0))})
+	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
+	var body := "SEASON %d STANDINGS\\n\\n" % season_number
+	for index in range(rows.size()):
+		body += "%d. %s — %d points\\n" % [index + 1, str(rows[index]["name"]), int(rows[index]["points"])]
+	body += "\\nEvents completed: %d / %d" % [season_events_completed.size(), _event_catalog().size()]
+	_show_subpage("SEASON STANDINGS", body, "BACK TO CAREER")
+
 func _show_standings() -> void:
 	var rows: Array = [{"name": "YOU", "points": career_wins * 10}]
 	for name in rival_names:
@@ -859,6 +907,7 @@ func _finish_race() -> void:
 		career_xp += last_xp_earned
 		last_level_up = _driver_level() > old_level
 		_update_rival_career_results(won)
+		_update_season_progress(won)
 		if won:
 			career_wins += 1
 			career_cash += race_reward
@@ -886,6 +935,8 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 	_add_section_label("DISTANCE  |  %d metres" % int(race_distance))
 	_add_section_label("PRIZE MONEY  |  $%s" % str(race_reward if was_career_race and won else 0))
 	if was_career_race:
+		if last_season_message != "":
+			_add_section_label(last_season_message)
 		_add_section_label("DRIVER XP  |  +%d" % last_xp_earned)
 		_add_section_label("DRIVER LEVEL  |  %d" % _driver_level())
 		if last_level_up:
@@ -971,6 +1022,9 @@ func _load_career_save() -> void:
 	career_cash = int(save.get_value("career", "cash", 0))
 	career_reputation = int(save.get_value("career", "reputation", 0))
 	career_xp = int(save.get_value("career", "xp", 0))
+	season_number = int(save.get_value("career", "season_number", 1))
+	season_points = save.get_value("career", "season_points", {})
+	season_events_completed = save.get_value("career", "season_events_completed", [])
 	rival_records = save.get_value("career", "rival_records", {})
 	personal_bests = save.get_value("career", "personal_bests", {})
 	selected_event_id = str(save.get_value("career", "selected_event_id", "quarter_mile"))
@@ -999,6 +1053,9 @@ func _save_career() -> void:
 	save.set_value("career", "cash", career_cash)
 	save.set_value("career", "reputation", career_reputation)
 	save.set_value("career", "xp", career_xp)
+	save.set_value("career", "season_number", season_number)
+	save.set_value("career", "season_points", season_points)
+	save.set_value("career", "season_events_completed", season_events_completed)
 	save.set_value("career", "rival_records", rival_records)
 	save.set_value("career", "personal_bests", personal_bests)
 	save.set_value("career", "selected_event_id", selected_event_id)
