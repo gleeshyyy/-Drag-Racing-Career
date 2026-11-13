@@ -78,6 +78,7 @@ var rival_name := "Darius Cole"
 var rival_names := ["Darius Cole", "Maya Brooks", "Jaxon Reed", "Andre Silva"]
 var quick_rival_name := ""
 var quick_searching := false
+var race_countdown_active := false
 
 var title_label: Label
 var status_label: Label
@@ -687,8 +688,12 @@ func _search_quick_opponent() -> void:
 	section_panel.add_child(back_button)
 
 func _start_race() -> void:
-	section_panel.hide()
+	if race_countdown_active:
+		return
+	race_countdown_active = true
+	section_panel.show()
 	menu_panel.hide()
+	race_panel.hide()
 	if career_race:
 		var event: Dictionary = _get_selected_event()
 		race_distance = float(event["distance"])
@@ -700,7 +705,7 @@ func _start_race() -> void:
 		race_reward = 0
 		rival_target_speed = 238.0
 		race_event_name = "Quick Race"
-	race_active = true
+	race_active = false
 	race_finished = false
 	player_distance = 0.0
 	rival_distance = 0.0
@@ -710,17 +715,33 @@ func _start_race() -> void:
 	gear = 1
 	race_time = 0.0
 	throttle_down = false
-	menu_panel.hide()
-	race_panel.show()
-	title_label.text = "MAKE YOUR MOVE"
 	if career_race:
 		rival_name = rival_names[(career_wins + career_losses) % rival_names.size()]
 	else:
 		rival_name = quick_rival_name if quick_rival_name != "" else rival_names[randi_range(0, rival_names.size() - 1)]
+	title_label.text = "GET READY"
+	status_label.text = "You vs %s  •  Take your position." % rival_name
+	_clear_section()
+	_add_section_label("RACE STARTING")
+	var countdown_label := _large_label("3")
+	countdown_label.add_theme_font_size_override("font_size", 76)
+	countdown_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	section_panel.add_child(countdown_label)
+	for count in [3, 2, 1]:
+		countdown_label.text = str(count)
+		await get_tree().create_timer(0.85).timeout
+	countdown_label.text = "GO!"
+	countdown_label.add_theme_color_override("font_color", Color("#f5a623"))
+	await get_tree().create_timer(0.45).timeout
+	section_panel.hide()
+	race_panel.show()
+	title_label.text = "MAKE YOUR MOVE"
 	if is_instance_valid(track_title_label):
 		track_title_label.text = "%s  /  %d M" % [race_event_name.to_upper(), int(race_distance)]
 	status_label.text = "You vs %s  •  Beat them to %d metres." % [rival_name, int(race_distance)]
 	_update_hud()
+	race_countdown_active = false
+	race_active = true
 
 func _shift_gear() -> void:
 	if not race_active or shift_cooldown > 0.0:
