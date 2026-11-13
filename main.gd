@@ -62,6 +62,9 @@ var shift_cooldown := 0.0
 var race_time := 0.0
 var race_top_speed := 0.0
 var last_top_speed_record := false
+var race_track_condition := "DRY ASPHALT"
+var player_grip_multiplier := 1.0
+var rival_grip_multiplier := 1.0
 var personal_bests: Dictionary = {}
 var personal_top_speeds: Dictionary = {}
 var race_history: Array = []
@@ -135,12 +138,12 @@ func _process(delta: float) -> void:
 	shift_cooldown = maxf(0.0, shift_cooldown - delta)
 	if throttle_down:
 		var gear_factor := 1.0 + float(gear - 1) * 0.025
-		player_speed = minf(car_max_speed * gear_factor, player_speed + car_acceleration * gear_factor * delta)
+		player_speed = minf(car_max_speed * gear_factor, player_speed + car_acceleration * player_grip_multiplier * gear_factor * delta)
 		rpm = minf(7600.0, rpm + 3900.0 * delta)
 	else:
 		player_speed = maxf(0.0, player_speed - 4.0 * delta)
 		rpm = maxf(900.0, rpm - 1800.0 * delta)
-	rival_speed = minf(rival_target_speed, rival_speed + rival_acceleration * delta)
+	rival_speed = minf(rival_target_speed, rival_speed + rival_acceleration * rival_grip_multiplier * delta)
 	race_top_speed = maxf(race_top_speed, player_speed)
 	player_distance += player_speed / 3.6 * delta
 	rival_distance += rival_speed / 3.6 * delta
@@ -653,6 +656,7 @@ func _show_race_history() -> void:
 			body += "%d. %s  |  %s\n" % [index + 1, str(entry.get("result", "UNKNOWN")), str(entry.get("event", "Race"))]
 			body += "Opponent: %s  •  Time: %.2f sec\n" % [str(entry.get("opponent", "Unknown")), float(entry.get("time", 0.0))]
 			body += "Top speed: %d km/h\n" % int(entry.get("top_speed", 0.0))
+			body += "Track: %s\n" % str(entry.get("condition", "Unknown"))
 			body += "Distance: %d m  •  Prize: $%s  •  %s\n" % [int(entry.get("distance", 0)), str(entry.get("prize", 0)), str(entry.get("mode", "Career"))]
 			body += "%s\n\n" % str(entry.get("date", ""))
 	_show_subpage("RACE HISTORY", body, "BACK TO CAREER")
@@ -963,6 +967,30 @@ func _search_quick_opponent() -> void:
 	back_button.pressed.connect(_show_menu)
 	section_panel.add_child(back_button)
 
+func _roll_track_condition() -> void:
+	var roll := randi_range(1, 100)
+	var base_grip := 1.0
+	if roll <= 20:
+		race_track_condition = "PREPPED ASPHALT"
+		base_grip = 1.08
+	elif roll <= 65:
+		race_track_condition = "DRY ASPHALT"
+		base_grip = 1.0
+	elif roll <= 85:
+		race_track_condition = "DAMP TRACK"
+		base_grip = 0.90
+	else:
+		race_track_condition = "WET TRACK"
+		base_grip = 0.78
+	var upgrades: Dictionary = car_upgrades.get(active_car, {})
+	var tyre_level := int(upgrades.get("Tyres", 0))
+	var tyre_protection := float(tyre_level) * 0.025
+	player_grip_multiplier = base_grip
+	if base_grip < 1.0:
+		player_grip_multiplier = minf(1.0, base_grip + tyre_protection)
+	rival_grip_multiplier = base_grip
+
+
 func _start_race() -> void:
 	if race_countdown_active:
 		return
@@ -990,6 +1018,7 @@ func _start_race() -> void:
 	gear = 1
 	race_time = 0.0
 	race_top_speed = 0.0
+	_roll_track_condition()
 	throttle_down = false
 	if career_race:
 		rival_name = str(rival_names[(career_wins + career_losses) % rival_names.size()])
@@ -1014,6 +1043,7 @@ func _start_race() -> void:
 	title_label.text = "GET READY"
 	status_label.text = "Hold ACCELERATE now. Launch when the countdown says GO!"
 	_clear_section()
+	_add_section_label("TRACK CONDITION  |  " + race_track_condition)
 	_add_section_label("HOLD ACCELERATE TO PREPARE YOUR LAUNCH")
 	var countdown_label := _large_label("3")
 	countdown_label.add_theme_font_size_override("font_size", 76)
@@ -1084,6 +1114,7 @@ func _finish_race() -> void:
 		"result": "WIN" if won else "LOSS",
 		"time": race_time,
 		"top_speed": race_top_speed,
+		"condition": race_track_condition,
 		"distance": int(race_distance),
 		"prize": race_prize,
 		"mode": "Career" if was_career_race else "Quick Race",
@@ -1132,6 +1163,7 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 	_add_section_label("OPPONENT  |  " + rival_name)
 	_add_section_label("YOUR TIME  |  %.2f seconds" % race_time)
 	_add_section_label("TOP SPEED  |  %d km/h%s" % [int(race_top_speed), "  •  NEW RECORD!" if last_top_speed_record else ""])
+	_add_section_label("TRACK CONDITION  |  " + race_track_condition)
 	_add_section_label("DISTANCE  |  %d metres" % int(race_distance))
 	_add_section_label("PRIZE MONEY  |  $%s" % str(race_reward if was_career_race and won else 0))
 	if was_career_race:
