@@ -41,7 +41,7 @@ func _process(delta: float) -> void:
 	race_time += delta
 	shift_cooldown = maxf(0.0, shift_cooldown - delta)
 	if throttle_down:
-		var gear_factor := 1.0 - float(gear - 1) * 0.075
+		var gear_factor := 1.0 + float(gear - 1) * 0.025
 		player_speed = minf(MAX_SPEED * gear_factor, player_speed + ACCELERATION * gear_factor * delta)
 		rpm = minf(7600.0, rpm + 3900.0 * delta)
 	else:
