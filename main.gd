@@ -298,6 +298,10 @@ func _show_career_dashboard() -> void:
 	_add_section_label("Wins: %d     Losses: %d" % [career_wins, career_losses])
 	_add_section_label("Cash: $%s     Reputation: %d" % [str(career_cash), career_reputation])
 	_add_section_label("LAST RESULT  |  " + last_result)
+	var profile_button := _make_button("DRIVER PROFILE", Color("#34485d"))
+	profile_button.add_theme_color_override("font_color", Color.WHITE)
+	profile_button.pressed.connect(_show_driver_profile)
+	section_panel.add_child(profile_button)
 	var calendar_button := _make_button("RACE CALENDAR", Color("#34485d"))
 	calendar_button.add_theme_color_override("font_color", Color.WHITE)
 	calendar_button.pressed.connect(_show_calendar)
@@ -592,6 +596,27 @@ func _select_event(event_id: String) -> void:
 
 func _show_calendar() -> void:
 	_show_event_selection()
+
+func _show_driver_profile() -> void:
+	var total_races := career_wins + career_losses
+	var win_rate := 0.0
+	if total_races > 0:
+		win_rate = float(career_wins) * 100.0 / float(total_races)
+	var body := "DRIVER PROFILE\\n\\n"
+	body += "DRIVER LEVEL  |  %d\\n" % _driver_level()
+	body += "TOTAL XP  |  %d\\n" % career_xp
+	body += "LEVEL PROGRESS  |  %d / 250 XP\\n\\n" % (career_xp % 250)
+	body += "CAREER RECORD\\n"
+	body += "Wins  |  %d\\nLosses  |  %d\\nWin Rate  |  %.1f%%\\n" % [career_wins, career_losses, win_rate]
+	body += "Reputation  |  %d\\nCash  |  $%s\\nActive Car  |  %s\\n\\n" % [career_reputation, str(career_cash), active_car]
+	body += "PERSONAL BEST RECORDS\\n"
+	for event in _event_catalog():
+		var event_id := str(event["id"])
+		var best := float(personal_bests.get(event_id, 0.0))
+		body += "%s  |  %s\\n" % [str(event["name"]), "%.2f sec" % best if best > 0.0 else "No record"]
+	var quick_best := float(personal_bests.get("quick_402", 0.0))
+	body += "Quick Race  |  %s" % ("%.2f sec" % quick_best if quick_best > 0.0 else "No record")
+	_show_subpage("DRIVER PROFILE", body, "BACK TO CAREER")
 
 func _show_standings() -> void:
 	var rows: Array = [{"name": "YOU", "points": career_wins * 10}]
