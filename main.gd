@@ -308,7 +308,7 @@ func _build_interface() -> void:
 	root.add_child(brand)
 
 	title_label = Label.new()
-	title_label.text = "THE STREETS\nARE YOURS."
+	title_label.text = "OWN THE STRIP.\nBUILD YOUR LEGACY."
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.add_theme_font_size_override("font_size", 34)
 	title_label.add_theme_color_override("font_color", Color("#f2f6fa"))
@@ -328,7 +328,7 @@ func _build_interface() -> void:
 	menu_art.name = "MainMenuRacingArtwork"
 	menu_art.texture = load("res://assets/menu_hero.svg")
 	menu_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	menu_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVER
+	menu_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	menu_art.custom_minimum_size = Vector2(0, 226)
 	menu_art.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	menu_panel.add_child(menu_art)
@@ -483,7 +483,7 @@ func _show_menu() -> void:
 	section_panel.hide()
 	nav_panel.hide()
 	menu_panel.show()
-	title_label.text = "THE STREETS\nARE YOURS."
+	title_label.text = "OWN THE STRIP.\nBUILD YOUR LEGACY."
 	status_label.text = "YOUR NEXT RUN STARTS HERE."
 
 func _show_settings() -> void:
