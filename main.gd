@@ -419,6 +419,10 @@ func _show_career_dashboard() -> void:
 		team_standings_button.add_theme_color_override("font_color", Color.WHITE)
 		team_standings_button.pressed.connect(_show_professional_team_standings)
 		section_panel.add_child(team_standings_button)
+	if national_pathway_unlocked:
+		var national_button := _make_button("NATIONAL CHAMPIONSHIP PATHWAY", Color("#c17a28"))
+		national_button.pressed.connect(_show_national_pathway)
+		section_panel.add_child(national_button)
 	var teams_button := _make_button("RACING TEAMS & CONTRACTS", Color("#2675a8"))
 	teams_button.add_theme_color_override("font_color", Color.WHITE)
 	teams_button.pressed.connect(_show_team_management)
@@ -1174,6 +1178,18 @@ func _update_professional_season(player_won: bool) -> void:
 		professional_events_completed = []
 		professional_team_points = {}
 		_save_career()
+
+func _show_national_pathway() -> void:
+	var body := "NATIONAL CHAMPIONSHIP PATHWAY\n\n"
+	body += "Your professional season victory has earned you an invitation to pursue the National Championship.\n\n"
+	body += "QUALIFICATION REQUIREMENTS\n"
+	body += "Professional Season Title  |  %s\n" % ("COMPLETE" if national_pathway_unlocked else "LOCKED")
+	body += "Career Wins  |  %d / 25\n" % mini(career_wins, 25)
+	body += "Driver Level  |  %d / 10\n" % mini(_driver_level(), 10)
+	body += "Reputation  |  %d / 300\n" % mini(career_reputation, 300)
+	var qualified := national_pathway_unlocked and career_wins >= 25 and _driver_level() >= 10 and career_reputation >= 300
+	body += "\nSTATUS  |  %s" % ("QUALIFIED — NATIONAL SERIES ENTRY READY" if qualified else "INVITATION SECURED — COMPLETE THE REMAINING REQUIREMENTS")
+	_show_subpage("NATIONAL CHAMPIONSHIP", body, "BACK TO CAREER")
 
 func _show_professional_standings() -> void:
 	var display_points: Dictionary = professional_season_points
