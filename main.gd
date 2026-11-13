@@ -76,6 +76,7 @@ var car_acceleration := 23.0
 var garage_return_to_career := false
 var rival_name := "Darius Cole"
 var rival_names := ["Darius Cole", "Maya Brooks", "Jaxon Reed", "Andre Silva"]
+var quick_rival_name := ""
 
 var title_label: Label
 var status_label: Label
@@ -160,7 +161,7 @@ func _build_interface() -> void:
 	career_button.pressed.connect(_show_career_dashboard)
 	menu_panel.add_child(career_button)
 	var quick_button := _make_button("QUICK RACE", Color("#38a8e8"))
-	quick_button.pressed.connect(_start_race)
+	quick_button.pressed.connect(_show_quick_matchmaking)
 	menu_panel.add_child(quick_button)
 	var garage_button := _make_button("GARAGE", Color("#34485d"))
 	garage_button.add_theme_color_override("font_color", Color.WHITE)
@@ -618,6 +619,47 @@ func _add_section_label(caption: String) -> void:
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	section_panel.add_child(label)
 
+func _show_quick_matchmaking() -> void:
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	title_label.text = "QUICK RACE"
+	status_label.text = "Find an AI driver to race against."
+	_clear_section()
+	_add_section_label("AI DRIVER MATCHMAKING")
+	_add_section_label("Search the driver roster and choose your opponent.")
+	var search_button := _make_button("SEARCH FOR OPPONENT", Color("#38a8e8"))
+	search_button.pressed.connect(_search_quick_opponent)
+	section_panel.add_child(search_button)
+	var back_button := _make_button("BACK TO MENU", Color("#263545"))
+	back_button.add_theme_color_override("font_color", Color.WHITE)
+	back_button.pressed.connect(_show_menu)
+	section_panel.add_child(back_button)
+
+func _search_quick_opponent() -> void:
+	var available_rivals := rival_names.duplicate()
+	if available_rivals.size() > 1 and available_rivals.has(quick_rival_name):
+		available_rivals.erase(quick_rival_name)
+	quick_rival_name = str(available_rivals[randi_range(0, available_rivals.size() - 1)])
+	_clear_section()
+	_add_section_label("OPPONENT FOUND")
+	_add_section_label(quick_rival_name.to_upper())
+	_add_section_label("AI DRIVER  •  DRAG RACING CHALLENGER")
+	_add_section_label("This driver has been selected for your Quick Race.")
+	var race_button := _make_button("RACE THIS DRIVER", Color("#f5a623"))
+	race_button.pressed.connect(func():
+		career_race = false
+		_start_race()
+	)
+	section_panel.add_child(race_button)
+	var search_again := _make_button("SEARCH AGAIN", Color("#38a8e8"))
+	search_again.pressed.connect(_search_quick_opponent)
+	section_panel.add_child(search_again)
+	var back_button := _make_button("BACK TO MENU", Color("#263545"))
+	back_button.add_theme_color_override("font_color", Color.WHITE)
+	back_button.pressed.connect(_show_menu)
+	section_panel.add_child(back_button)
+
 func _start_race() -> void:
 	section_panel.hide()
 	menu_panel.hide()
@@ -645,7 +687,10 @@ func _start_race() -> void:
 	menu_panel.hide()
 	race_panel.show()
 	title_label.text = "MAKE YOUR MOVE"
-	rival_name = rival_names[(career_wins + career_losses) % rival_names.size()]
+	if career_race:
+		rival_name = rival_names[(career_wins + career_losses) % rival_names.size()]
+	else:
+		rival_name = quick_rival_name if quick_rival_name != "" else rival_names[randi_range(0, rival_names.size() - 1)]
 	if is_instance_valid(track_title_label):
 		track_title_label.text = "%s  /  %d M" % [race_event_name.to_upper(), int(race_distance)]
 	status_label.text = "You vs %s  •  Beat them to %d metres." % [rival_name, int(race_distance)]
