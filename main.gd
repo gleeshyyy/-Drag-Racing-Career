@@ -315,7 +315,7 @@ func _build_interface() -> void:
 	root.add_child(title_label)
 
 	status_label = Label.new()
-	status_label.text = "A new career starts with one race."
+	status_label.text = "A story-driven drag racing career."
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.add_theme_font_size_override("font_size", 15)
 	status_label.add_theme_color_override("font_color", Color("#8b9aaa"))
@@ -324,6 +324,20 @@ func _build_interface() -> void:
 	menu_panel = VBoxContainer.new()
 	menu_panel.add_theme_constant_override("separation", 12)
 	root.add_child(menu_panel)
+	var menu_art := TextureRect.new()
+	menu_art.name = "MainMenuRacingArtwork"
+	menu_art.texture = load("res://assets/menu_hero.svg")
+	menu_art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	menu_art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVER
+	menu_art.custom_minimum_size = Vector2(0, 226)
+	menu_art.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	menu_panel.add_child(menu_art)
+	var menu_art_caption := Label.new()
+	menu_art_caption.text = "NIGHT RUNS  •  BIG HORSEPOWER  •  NO SHORTCUTS"
+	menu_art_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	menu_art_caption.add_theme_font_size_override("font_size", 11)
+	menu_art_caption.add_theme_color_override("font_color", Color("#9beeff"))
+	menu_panel.add_child(menu_art_caption)
 	var career_button := _make_button("CONTINUE CAREER\nRETURN TO YOUR CAREER HQ  →", Color("#f5a623"))
 	career_button.custom_minimum_size = Vector2(0, 112)
 	career_button.add_theme_font_size_override("font_size", 21)
@@ -470,7 +484,7 @@ func _show_menu() -> void:
 	nav_panel.hide()
 	menu_panel.show()
 	title_label.text = "THE STREETS\nARE YOURS."
-	status_label.text = "Choose how you want to race."
+	status_label.text = "YOUR NEXT RUN STARTS HERE."
 
 func _show_settings() -> void:
 	menu_panel.hide()

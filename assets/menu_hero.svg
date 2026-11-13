@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560">
+<defs>
+ <linearGradient id="bg" x2="0" y2="1"><stop stop-color="#07111f"/><stop offset=".55" stop-color="#17293a"/><stop offset="1" stop-color="#05090f"/></linearGradient>
+ <linearGradient id="body" x2="1" y2="1"><stop stop-color="#dceaf3"/><stop offset=".45" stop-color="#506779"/><stop offset="1" stop-color="#121d2a"/></linearGradient>
+ <linearGradient id="glass" x2="0" y2="1"><stop stop-color="#4bc9e8" stop-opacity=".75"/><stop offset="1" stop-color="#09131e"/></linearGradient>
+ <linearGradient id="road" x2="0" y2="1"><stop stop-color="#24313d"/><stop offset="1" stop-color="#080c12"/></linearGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="9" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+ <filter id="soft"><feGaussianBlur stdDeviation="18"/></filter>
+</defs>
+<rect width="1200" height="560" fill="url(#bg)"/>
+<path d="M0 0h1200v300H0z" fill="#07101a"/>
+<g opacity=".55" fill="#152638">
+ <path d="M0 110h90v210H0zm105-45h70v255h-70zm90 80h95v175h-95zm815-60h90v235h-90zm105-45h95v280h-95z"/>
+ <path d="M320 145h90v175h-90zm570-20h75v195h-75z"/>
+</g>
+<g fill="#ffb65c" opacity=".85"><path d="M28 160h7v36h-7zm120 24h6v28h-6zm950-48h6v32h-6z"/></g>
+<g fill="#20d9ff" opacity=".8"><path d="M145 105h6v40h-6zm235 62h5v30h-5zm610-30h6v45h-6z"/></g>
+<path d="M0 345L1200 315v245H0z" fill="url(#road)"/>
+<path d="M0 410l1200-45" stroke="#26dfff" stroke-width="3" opacity=".5" filter="url(#glow)"/>
+<path d="M0 478l1200-38" stroke="#f5a623" stroke-width="3" opacity=".45" filter="url(#glow)"/>
+<path d="M420 560l170-235h18L520 560z" fill="#d5e2eb" opacity=".13"/>
+<g transform="translate(140 215)">
+ <ellipse cx="470" cy="220" rx="430" ry="35" fill="#00dfff" opacity=".24" filter="url(#soft)"/>
+ <path d="M95 166l70-58q36-27 104-32l255-8q78 2 126 42l95 66 47 15 13 49H52l12-45z" fill="url(#body)" stroke="#b7d2e2" stroke-width="5"/>
+ <path d="M278 82l244-8q58 1 96 36l50 53H205l45-57q10-17 28-24z" fill="url(#glass)" stroke="#8eeaff" stroke-width="4"/>
+ <path d="M390 77l-4 86m140-89l40 89" stroke="#172b3b" stroke-width="9"/>
+ <path d="M72 179l88-12 44 25-16 15H58z" fill="#eafaff" filter="url(#glow)"/>
+ <path d="M850 177l-74-7-38 24 13 13h103z" fill="#ffad54" filter="url(#glow)"/>
+ <path d="M75 213h720" stroke="#00dfff" stroke-width="6" opacity=".85" filter="url(#glow)"/>
+ <path d="M160 145h65l-22 26h-60zm530 0h-64l22 26h60z" fill="#f5a623"/>
+ <path d="M220 225h520" stroke="#101923" stroke-width="18"/>
+ <g fill="#080d13" stroke="#879aa8" stroke-width="8"><circle cx="235" cy="222" r="54"/><circle cx="680" cy="222" r="54"/></g>
+ <g fill="#a9bbc7"><circle cx="235" cy="222" r="20"/><circle cx="680" cy="222" r="20"/></g>
+ <path d="M94 154l-34 42 4 23h58l20-35zm684 0l34 42-4 23h-58l-20-35z" fill="#1a2a38"/>
+</g>
+<g opacity=".9"><path d="M70 505h260" stroke="#f5a623" stroke-width="5"/><path d="M870 500h260" stroke="#00dfff" stroke-width="5"/></g>
+<text x="600" y="60" fill="#eaf7ff" font-family="Arial,sans-serif" font-size="25" letter-spacing="8" text-anchor="middle" opacity=".8">THE UNDERGROUND STARTS HERE</text>
+</svg>
