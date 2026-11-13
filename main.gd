@@ -70,6 +70,9 @@ var career_xp := 0
 var season_number := 1
 var season_points: Dictionary = {}
 var season_events_completed: Array = []
+var last_season_points: Dictionary = {}
+var last_season_number := 0
+var last_season_champion := ""
 var last_season_message := ""
 var last_xp_earned := 0
 var last_level_up := false
@@ -645,6 +648,9 @@ func _update_season_progress(player_won: bool) -> void:
 			rows.append({"name": driver, "points": int(season_points.get(driver, 0))})
 		rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
 		var champion := str(rows[0]["name"])
+		last_season_points = season_points.duplicate(true)
+		last_season_number = season_number
+		last_season_champion = champion
 		if champion == "YOU":
 			career_cash += 2500
 			career_reputation += 25
@@ -656,14 +662,21 @@ func _update_season_progress(player_won: bool) -> void:
 		season_events_completed = []
 
 func _show_season_standings() -> void:
-	var rows: Array = [{"name": "YOU", "points": int(season_points.get("YOU", 0))}]
+	var display_points: Dictionary = season_points
+	var display_number := season_number
+	var heading := "CURRENT SEASON"
+	if season_events_completed.is_empty() and last_season_number > 0:
+		display_points = last_season_points
+		display_number = last_season_number
+		heading = "LAST COMPLETED SEASON  |  CHAMPION: " + last_season_champion
+	var rows: Array = [{"name": "YOU", "points": int(display_points.get("YOU", 0))}]
 	for name in rival_names:
-		rows.append({"name": name, "points": int(season_points.get(name, 0))})
+		rows.append({"name": name, "points": int(display_points.get(name, 0))})
 	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
-	var body := "SEASON %d STANDINGS\n\n" % season_number
+	var body := "%s\nSEASON %d\n\n" % [heading, display_number]
 	for index in range(rows.size()):
 		body += "%d. %s — %d points\n" % [index + 1, str(rows[index]["name"]), int(rows[index]["points"])]
-	body += "\nEvents completed: %d / %d" % [season_events_completed.size(), _event_catalog().size()]
+	body += "\nCurrent season events completed: %d / %d" % [season_events_completed.size(), _event_catalog().size()]
 	_show_subpage("SEASON STANDINGS", body, "BACK TO CAREER")
 
 func _show_standings() -> void:
@@ -1025,6 +1038,9 @@ func _load_career_save() -> void:
 	season_number = int(save.get_value("career", "season_number", 1))
 	season_points = save.get_value("career", "season_points", {})
 	season_events_completed = save.get_value("career", "season_events_completed", [])
+	last_season_points = save.get_value("career", "last_season_points", {})
+	last_season_number = int(save.get_value("career", "last_season_number", 0))
+	last_season_champion = str(save.get_value("career", "last_season_champion", ""))
 	rival_records = save.get_value("career", "rival_records", {})
 	personal_bests = save.get_value("career", "personal_bests", {})
 	selected_event_id = str(save.get_value("career", "selected_event_id", "quarter_mile"))
@@ -1056,6 +1072,9 @@ func _save_career() -> void:
 	save.set_value("career", "season_number", season_number)
 	save.set_value("career", "season_points", season_points)
 	save.set_value("career", "season_events_completed", season_events_completed)
+	save.set_value("career", "last_season_points", last_season_points)
+	save.set_value("career", "last_season_number", last_season_number)
+	save.set_value("career", "last_season_champion", last_season_champion)
 	save.set_value("career", "rival_records", rival_records)
 	save.set_value("career", "personal_bests", personal_bests)
 	save.set_value("career", "selected_event_id", selected_event_id)
