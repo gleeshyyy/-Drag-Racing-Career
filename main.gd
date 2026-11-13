@@ -651,8 +651,8 @@ func _show_race_history() -> void:
 			var entry: Dictionary = race_history[index]
 			body += "%d. %s  |  %s\n" % [index + 1, str(entry.get("result", "UNKNOWN")), str(entry.get("event", "Race"))]
 			body += "Opponent: %s  •  Time: %.2f sec\n" % [str(entry.get("opponent", "Unknown")), float(entry.get("time", 0.0))]
-body += "Top speed: %d km/h\\n" % int(entry.get("top_speed", 0.0))
-						body += "Distance: %d m  •  Prize: $%s  •  %s\n" % [int(entry.get("distance", 0)), str(entry.get("prize", 0)), str(entry.get("mode", "Career"))]
+			body += "Top speed: %d km/h\n" % int(entry.get("top_speed", 0.0))
+			body += "Distance: %d m  •  Prize: $%s  •  %s\n" % [int(entry.get("distance", 0)), str(entry.get("prize", 0)), str(entry.get("mode", "Career"))]
 			body += "%s\n\n" % str(entry.get("date", ""))
 	_show_subpage("RACE HISTORY", body, "BACK TO CAREER")
 
