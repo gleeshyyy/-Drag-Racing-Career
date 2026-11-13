@@ -1,24 +1,21 @@
 # Dragless Rivalry — HTML Edition
 
-A responsive, browser-based rebuild of the 2D drag racing career simulator. The original Godot implementation remains preserved on the existing branches.
+A responsive, browser-based drag-racing career simulator. The original Godot work remains preserved on its existing branches.
 
 ## Run locally
-Open `index.html` in a modern browser. No build step or server is required.
+Open `index.html` in a modern mobile or desktop browser. No build step or server is required.
 
-## Current web milestone
-- Responsive title screen, driver creation and opening story.
-- Career dashboard with cash, wins, reputation, level and vehicle condition.
-- Reaction-based drag race: staging tree, launch timing, false starts, quarter-mile elapsed time and rival comparison.
-- Race rewards, reputation, driver levels and race history.
-- Garage performance tuning, vehicle condition and paid repairs.
-- Sponsor contract unlocked at 10 reputation, with a three-win objective and completion bonus.
-- Weekly management costs and progression.
-- Career save data stored in browser localStorage.
-- Original vector racing artwork in `assets/drag-hero.svg`.
+## Implemented systems
+- Responsive title screen, driver creation, opening story and career journal.
+- Local browser save with migration defaults for older career data.
+- Career dashboard: cash, wins, reputation, driver level, car condition and navigation.
+- Drag race: staging tree, reaction timing, false starts, three gear shifts, quarter-mile ET and rival comparison.
+- Race entry fees charged when staging; leaving a staged race cancels its live timer without refunding the entry.
+- Garage: four vehicles, ownership, car selection, performance tuning, repairs and personal best.
+- Career management: sponsor contract, weekly challenges, milestones, race history and weekly living costs.
+- Story choices involving Jasper, Jax, Viper and Rex, with one-time decisions and a journal.
+- Eight-round championship season with a fixed event calendar, player/rival points, round forfeits, standings, title rewards and past-season records.
 
-## Validation
-- JavaScript syntax check passed after the racing and career update.
-- Browser/device playtesting is still required.
-
-## Next
-Expand the race simulation with selectable event classes, gear shifting, vehicle selection, rival progression, contracts and the personal-life systems from the original design.
+## Validation status
+- JavaScript syntax and static consistency checks are run for each code update.
+- Browser/Android playtesting is still required before calling the build fully verified.
