@@ -664,7 +664,11 @@ func _check_achievements(new_personal_best: bool) -> void:
 	if new_personal_best and _unlock_achievement("record_breaker"):
 		unlocked.append("Record Breaker")
 	if not unlocked.is_empty():
-		last_achievement_message = "ACHIEVEMENT UNLOCKED: " + ", ".join(unlocked)
+		last_achievement_message = "ACHIEVEMENT UNLOCKED: "
+		for index in range(unlocked.size()):
+			if index > 0:
+				last_achievement_message += ", "
+			last_achievement_message += unlocked[index]
 
 func _unlock_achievement(achievement_id: String) -> bool:
 	if bool(achievements.get(achievement_id, false)):
