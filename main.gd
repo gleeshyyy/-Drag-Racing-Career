@@ -1516,11 +1516,13 @@ func _start_race() -> void:
 		var entry_fee := _event_entry_fee(selected_event_id)
 		if career_reputation < _event_min_reputation(selected_event_id):
 			career_race = false
+			race_countdown_active = false
 			status_label.text = "This event is locked. Build more reputation first."
 			_show_event_selection()
 			return
 		if career_cash < entry_fee:
 			career_race = false
+			race_countdown_active = false
 			status_label.text = "You need $%s for this event's entry fee." % str(entry_fee)
 			_show_event_selection()
 			return
@@ -1697,6 +1699,7 @@ func _finish_race() -> void:
 			last_result = "Victory vs " + rival_name
 			_check_career_tier_unlocks()
 			_update_story_progress()
+			_check_career_tier_unlocks()
 		else:
 			career_losses += 1
 			current_win_streak = 0
@@ -1708,6 +1711,7 @@ func _finish_race() -> void:
 				var challenge_bonus := 750 + career_reputation * 2
 				career_cash += challenge_bonus
 				career_reputation += 8
+				_check_career_tier_unlocks()
 				defeated_challenge_rivals.append(rival_challenge_name)
 				_add_career_notification("RIVAL DEFEATED: %s. Bonus $%s and +8 reputation." % [rival_challenge_name, str(challenge_bonus)])
 			else:
