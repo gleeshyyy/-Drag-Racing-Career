@@ -102,6 +102,8 @@ var story_stage := 0
 var story_completed := false
 var last_story_message := ""
 var story_race_active := false
+var professional_license := false
+var pro_championship_points := 0
 var active_jasper_job := ""
 var jasper_job_progress := 0
 var completed_jasper_jobs: Array = []
@@ -1328,16 +1330,16 @@ func _show_story_missions() -> void:
 	race_panel.hide()
 	section_panel.show()
 	title_label.text = "STORY & MISSIONS"
-	status_label.text = "JASPER'S CONNECTIONS  •  THE UNDERGROUND CIRCUIT"
+	status_label.text = "FROM THE UNDERGROUND TO THE PROFESSIONAL CIRCUIT"
 	_clear_section()
 	if story_stage == 0:
 		_add_section_label("CHAPTER 1  |  A FRESH START")
 		_add_section_label("Your old life has fallen apart. You lost your job, your marriage ended, and the court has ordered you to pay monthly child support. You need a way to rebuild.")
-		_add_section_label("Jasper, an old friend, calls with a way in. He knows the underground racing scene and can get you small jobs, but he expects you to prove yourself.")
+		_add_section_label("Jasper, an old friend, knows the underground racing scene and can get you small jobs, but he expects you to prove yourself.")
 		var begin_button := _make_button("CALL JASPER", Color("#f5a623"))
 		begin_button.pressed.connect(func():
 			story_stage = 1
-			last_story_message = "Jasper: I can get you started. Win your first career race and show them you belong."
+			last_story_message = "Jasper: Win your first career race and show them you belong."
 			_save_career()
 			_show_story_missions()
 		)
@@ -1357,13 +1359,12 @@ func _show_story_missions() -> void:
 			_add_section_label("A serious racing organizer is watching. Reach 50 reputation and win 5 Career races.")
 			_add_section_label("OBJECTIVE  |  5 Career wins and 50 reputation")
 		else:
-			_add_section_label("CHAPTER 1 COMPLETE")
-			_add_section_label("Jasper: You proved yourself. Rico Vale controls a bigger part of the underground circuit. Keep your head straight — his races are serious.")
-			_add_section_label("CHAPTER 2 UNLOCKED  |  THE UNDERGROUND CIRCUIT")
+			_add_section_label("CHAPTER 1 COMPLETE  |  CHAPTER 2 UNLOCKED")
+			_add_section_label("Jasper: Rico Vale controls a bigger part of the underground circuit.")
 			var meet_button := _make_button("MEET RICO VALE", Color("#f5a623"))
 			meet_button.pressed.connect(func():
 				story_stage = 5
-				last_story_message = "Rico Vale: Jasper says you can drive. Viktor Kane runs this circuit. Beat him and you earn a place here."
+				last_story_message = "Rico Vale: Beat Viktor Kane and earn your place in my circuit."
 				_save_career()
 				_show_story_missions()
 			)
@@ -1371,48 +1372,85 @@ func _show_story_missions() -> void:
 		if story_stage < 4:
 			_add_section_label("CAREER WINS  |  %d / 5" % career_wins)
 			_add_section_label("REPUTATION  |  %d / 50" % career_reputation)
-	else:
+	elif story_stage <= 8:
 		_add_section_label("CHAPTER 2  |  THE UNDERGROUND CIRCUIT")
 		if story_stage == 5:
 			_add_section_label("MISSION 1  |  THE FIRST IMPRESSION")
-			_add_section_label("Rico: Viktor Kane is waiting at the quarter-mile strip. Give him a reason to remember your name.")
-			_add_section_label("OBJECTIVE  |  Win the Quarter-Mile Sprint against Viktor Kane")
+			_add_section_label("Rico: Viktor Kane is waiting at the quarter-mile strip.")
+			_add_section_label("OBJECTIVE  |  Defeat Viktor in the Quarter-Mile Sprint")
 			_add_section_label("REWARD  |  $1,000 and +10 reputation")
 			_add_story_race_button("RACE VIKTOR  |  QUARTER-MILE", "quarter_mile")
 		elif story_stage == 6:
 			_add_section_label("MISSION 2  |  NO EASY WINS")
-			_add_section_label("Viktor: Beginner's luck. Let's see you handle a faster field. Rico has arranged a Pro Quarter-Mile rematch.")
-			_add_section_label("OBJECTIVE  |  Win the Pro Quarter-Mile against Viktor Kane")
+			_add_section_label("Viktor wants a rematch. Rico has arranged a tougher Pro Quarter-Mile.")
+			_add_section_label("OBJECTIVE  |  Defeat Viktor in the Pro Quarter-Mile")
 			_add_section_label("REWARD  |  $1,800 and +15 reputation")
 			_add_story_race_button("REMATCH VIKTOR  |  PRO QUARTER", "pro_quarter")
 		elif story_stage == 7:
 			_add_section_label("MISSION 3  |  OWN THE NIGHT")
-			_add_section_label("Rico: One last test. The half-mile final is for drivers who can hold their nerve and speed. Win, and the circuit is yours.")
-			_add_section_label("OBJECTIVE  |  Win the Half-Mile Challenge against Viktor Kane")
+			_add_section_label("Rico's final underground test is the Half-Mile Challenge.")
+			_add_section_label("OBJECTIVE  |  Defeat Viktor in the Half-Mile Challenge")
 			_add_section_label("REWARD  |  $3,500 and +25 reputation")
 			_add_story_race_button("UNDERGROUND FINAL  |  HALF-MILE", "half_mile")
 		else:
-			_add_section_label("CHAPTER 2 COMPLETE  |  CIRCUIT CHAMPION")
-			_add_section_label("You defeated Viktor Kane and won Rico Vale's underground final. The circuit knows your name. Your next step is to turn underground success into a professional racing career.")
-			_add_section_label("FINAL REWARD  |  $3,500 and +25 reputation")
+			_add_section_label("CHAPTER 2 COMPLETE  |  UNDERGROUND CIRCUIT CHAMPION")
+			_add_section_label("Rico: You have conquered my circuit. Now prove you belong in sanctioned motorsport.")
+			_add_section_label("NEXT  |  Apply for a professional racing licence.")
+			var apply_button := _make_button("APPLY FOR PRO LICENCE", Color("#f5a623"))
+			apply_button.pressed.connect(func():
+				story_stage = 9
+				last_story_message = "National Drag Association: Your application is on file. Meet the qualification standards to receive a licence."
+				_save_career()
+				_show_story_missions()
+			)
+			section_panel.add_child(apply_button)
+	else:
+		_add_section_label("CHAPTER 3  |  THE PROFESSIONAL CIRCUIT")
+		if story_stage == 9:
+			_add_section_label("LICENCE QUALIFICATION  |  NATIONAL DRAG ASSOCIATION")
+			_add_section_label("Professional racing requires proven results, experience and public standing.")
+			_add_section_label("REQUIREMENTS  |  10 Career wins • Driver Level 5 • 150 reputation")
+			_add_section_label("YOUR RECORD  |  %d wins • Level %d • %d reputation" % [career_wins, _driver_level(), career_reputation])
+			if career_wins >= 10 and _driver_level() >= 5 and career_reputation >= 150:
+				var qualify_button := _make_button("TAKE LICENCE QUALIFIER", Color("#f5a623"))
+				qualify_button.pressed.connect(func():
+					story_stage = 10
+					last_story_message = "NDA Official: Your record qualifies. Pass the sanctioned Pro Quarter-Mile assessment."
+					_save_career()
+					_show_story_missions()
+				)
+				section_panel.add_child(qualify_button)
+			else:
+				_add_section_label("NOT YET QUALIFIED  |  Keep racing in the available divisions.")
+		elif story_stage == 10:
+			_add_section_label("LICENCE TEST  |  SANCTIONED QUALIFIER")
+			_add_section_label("Official: This is a regulated event. Beat experienced driver Elena Cross to earn your professional licence.")
+			_add_section_label("EVENT  |  Pro Quarter-Mile")
+			_add_story_race_button("RACE ELENA CROSS  |  LICENCE TEST", "pro_quarter")
+		elif story_stage >= 11 and story_stage <= 13:
+			_add_section_label("OFFICIAL CHAMPIONSHIP  |  PROFESSIONAL DEBUT")
+			var round_events := [
+				{"id":"pro_quarter","name":"Pro Quarter-Mile"},
+				{"id":"half_mile","name":"Half-Mile Challenge"},
+				{"id":"top_speed","name":"Top Speed Shootout"}
+			]
+			var round_index := story_stage - 11
+			var round: Dictionary = round_events[round_index]
+			_add_section_label("ROUND %d OF 3  |  %s" % [round_index + 1, str(round["name"])])
+			_add_section_label("Win each round to secure the inaugural professional championship.")
+			_add_section_label("CHAMPIONSHIP WINS  |  %d / 3" % pro_championship_points)
+			_add_story_race_button("ENTER ROUND %d" % (round_index + 1), str(round["id"]))
+		else:
+			_add_section_label("PROFESSIONAL CHAMPION")
+			_add_section_label("You earned your National Drag Association licence and won your first sanctioned professional championship. Your career has entered the professional ranks.")
+			_add_section_label("PRO LICENCE  |  ACTIVE")
+			_add_section_label("CHAMPIONSHIP WINS  |  %d / 3" % pro_championship_points)
 	if last_story_message != "":
 		_add_section_label(last_story_message)
 	var back_button := _make_button("BACK TO CAREER", Color("#263545"))
 	back_button.add_theme_color_override("font_color", Color.WHITE)
 	back_button.pressed.connect(_show_career_dashboard)
 	section_panel.add_child(back_button)
-
-func _add_story_race_button(caption: String, event_id: String) -> void:
-	var race_button := _make_button(caption, Color("#f5a623"))
-	race_button.pressed.connect(func():
-		selected_event_id = event_id
-		race_event_name = str(_get_selected_event()["name"])
-		story_race_active = true
-		career_race = true
-		_save_career()
-		_start_race()
-	)
-	section_panel.add_child(race_button)
 
 func _update_story_progress() -> void:
 	if story_stage == 1 and career_wins >= 1:
@@ -1447,6 +1485,22 @@ func _update_story_progress() -> void:
 		career_reputation += 25
 		story_completed = true
 		last_story_message = "CHAPTER 2 COMPLETE: You defeated Viktor Kane and earned $3,500 plus 25 reputation. You are the Underground Circuit Champion."
+	elif story_race_active and story_stage == 10 and selected_event_id == "pro_quarter":
+		story_stage = 11
+		professional_license = true
+		career_cash += 2000
+		career_reputation += 20
+		last_story_message = "PRO LICENCE EARNED: The National Drag Association issues your professional licence. Championship registration is approved."
+	elif story_race_active and story_stage >= 11 and story_stage <= 13:
+		pro_championship_points += 1
+		career_cash += 1500
+		career_reputation += 15
+		if story_stage == 13:
+			story_stage = 14
+			last_story_message = "CHAMPIONSHIP WON: Three professional round victories. You are the sanctioned series champion."
+		else:
+			story_stage += 1
+			last_story_message = "PRO CHAMPIONSHIP ROUND WON: $1,500 and +15 reputation. Your next round is ready."
 	else:
 		return
 	story_race_active = false
@@ -1788,7 +1842,7 @@ func _start_race() -> void:
 	_roll_track_condition()
 	throttle_down = false
 	if career_race:
-		rival_name = "Viktor Kane" if story_race_active and story_stage >= 5 and story_stage <= 7 else (rival_challenge_name if rival_challenge_active else str(rival_names[(career_wins + career_losses) % rival_names.size()]))
+		rival_name = ("Viktor Kane" if story_stage >= 5 and story_stage <= 7 else "Elena Cross") if story_race_active else (rival_challenge_name if rival_challenge_active else str(rival_names[(career_wins + career_losses) % rival_names.size()]))
 		var selected_record: Dictionary = rival_records.get(rival_name, {})
 		var rival_car := str(selected_record.get("car", "Street Compact"))
 		var rival_upgrades := int(selected_record.get("upgrade_level", 0))
@@ -2126,6 +2180,8 @@ func _load_career_save() -> void:
 	missed_payment_months = int(save.get_value("career", "missed_payment_months", 0))
 	last_finance_message = str(save.get_value("career", "last_finance_message", ""))
 	story_completed = bool(save.get_value("career", "story_completed", false))
+	professional_license = bool(save.get_value("career", "professional_license", false))
+	pro_championship_points = int(save.get_value("career", "pro_championship_points", 0))
 	last_story_message = str(save.get_value("career", "last_story_message", ""))
 	owned_cars = save.get_value("garage", "owned_cars", ["Street Compact"])
 	active_car = str(save.get_value("garage", "active_car", "Street Compact"))
@@ -2198,6 +2254,8 @@ func _save_career() -> void:
 	save.set_value("career", "missed_payment_months", missed_payment_months)
 	save.set_value("career", "last_finance_message", last_finance_message)
 	save.set_value("career", "story_completed", story_completed)
+	save.set_value("career", "professional_license", professional_license)
+	save.set_value("career", "pro_championship_points", pro_championship_points)
 	save.set_value("career", "last_story_message", last_story_message)
 	save.set_value("garage", "owned_cars", owned_cars)
 	save.set_value("garage", "active_car", active_car)
