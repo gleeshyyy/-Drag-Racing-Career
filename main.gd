@@ -79,6 +79,8 @@ var sponsor_contract_target := 0
 var sponsor_contract_progress := 0
 var sponsor_contract_reward := 0
 var last_sponsor_message := ""
+var achievements: Dictionary = {}
+var last_achievement_message := ""
 var last_xp_earned := 0
 var last_level_up := false
 var last_result := "No races completed"
@@ -323,6 +325,10 @@ func _show_career_dashboard() -> void:
 	standings_button.add_theme_color_override("font_color", Color.WHITE)
 	standings_button.pressed.connect(_show_standings)
 	section_panel.add_child(standings_button)
+	var achievements_button := _make_button("ACHIEVEMENTS", Color("#34485d"))
+	achievements_button.add_theme_color_override("font_color", Color.WHITE)
+	achievements_button.pressed.connect(_show_achievements)
+	section_panel.add_child(achievements_button)
 	var sponsor_button := _make_button("SPONSOR CONTRACTS", Color("#34485d"))
 	sponsor_button.add_theme_color_override("font_color", Color.WHITE)
 	sponsor_button.pressed.connect(_show_sponsor_contracts)
@@ -638,6 +644,54 @@ func _show_driver_profile() -> void:
 	var quick_best := float(personal_bests.get("quick_402", 0.0))
 	body += "Quick Race  |  %s" % ("%.2f sec" % quick_best if quick_best > 0.0 else "No record")
 	_show_subpage("DRIVER PROFILE", body, "BACK TO CAREER")
+
+func _check_achievements(new_personal_best: bool) -> void:
+	last_achievement_message = ""
+	var total_races := career_wins + career_losses
+	var unlocked: Array[String] = []
+	if career_wins >= 1 and _unlock_achievement("first_win"):
+		unlocked.append("First Victory")
+	if career_wins >= 10 and _unlock_achievement("ten_wins"):
+		unlocked.append("Ten Wins")
+	if total_races >= 25 and _unlock_achievement("veteran_25"):
+		unlocked.append("Quarter-Century Racer")
+	if _driver_level() >= 5 and _unlock_achievement("level_5"):
+		unlocked.append("Rising Star")
+	if last_season_message.contains("CHAMPION!") and _unlock_achievement("season_champion"):
+		unlocked.append("Season Champion")
+	if last_sponsor_message.contains("CONTRACT COMPLETE") and _unlock_achievement("sponsor_complete"):
+		unlocked.append("Sponsor's Choice")
+	if new_personal_best and _unlock_achievement("record_breaker"):
+		unlocked.append("Record Breaker")
+	if not unlocked.is_empty():
+		last_achievement_message = "ACHIEVEMENT UNLOCKED: " + ", ".join(unlocked)
+
+func _unlock_achievement(achievement_id: String) -> bool:
+	if bool(achievements.get(achievement_id, false)):
+		return false
+	achievements[achievement_id] = true
+	return true
+
+func _show_achievements() -> void:
+	var achievement_names := {
+		"first_win": ["First Victory", "Win your first Career race"],
+		"ten_wins": ["Ten Wins", "Earn 10 Career victories"],
+		"veteran_25": ["Quarter-Century Racer", "Complete 25 Career races"],
+		"level_5": ["Rising Star", "Reach Driver Level 5"],
+		"season_champion": ["Season Champion", "Win a complete championship season"],
+		"sponsor_complete": ["Sponsor's Choice", "Complete a sponsorship contract"],
+		"record_breaker": ["Record Breaker", "Set a new personal best"]
+	}
+	var body := "CAREER ACHIEVEMENTS\n\n"
+	var unlocked_count := 0
+	for achievement_id in achievement_names.keys():
+		var details: Array = achievement_names[achievement_id]
+		var is_unlocked := bool(achievements.get(achievement_id, false))
+		if is_unlocked:
+			unlocked_count += 1
+		body += "%s  %s\n%s\n\n" % ["[UNLOCKED]" if is_unlocked else "[LOCKED]", str(details[0]), str(details[1])]
+	body += "UNLOCKED: %d / %d" % [unlocked_count, achievement_names.size()]
+	_show_subpage("ACHIEVEMENTS", body, "BACK TO CAREER")
 
 func _show_sponsor_contracts() -> void:
 	menu_panel.hide()
@@ -995,6 +1049,7 @@ func _finish_race() -> void:
 			career_losses += 1
 			last_result = "Defeat vs " + rival_name
 		career_race = false
+		_check_achievements(new_personal_best)
 		_save_career()
 	else:
 		_save_career()
@@ -1017,6 +1072,8 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 			_add_section_label(last_season_message)
 		if last_sponsor_message != "":
 			_add_section_label(last_sponsor_message)
+		if last_achievement_message != "":
+			_add_section_label(last_achievement_message)
 		_add_section_label("DRIVER XP  |  +%d" % last_xp_earned)
 		_add_section_label("DRIVER LEVEL  |  %d" % _driver_level())
 		if last_level_up:
@@ -1112,6 +1169,7 @@ func _load_career_save() -> void:
 	sponsor_contract_target = int(save.get_value("career", "sponsor_contract_target", 0))
 	sponsor_contract_progress = int(save.get_value("career", "sponsor_contract_progress", 0))
 	sponsor_contract_reward = int(save.get_value("career", "sponsor_contract_reward", 0))
+	achievements = save.get_value("career", "achievements", {})
 	rival_records = save.get_value("career", "rival_records", {})
 	personal_bests = save.get_value("career", "personal_bests", {})
 	selected_event_id = str(save.get_value("career", "selected_event_id", "quarter_mile"))
@@ -1150,6 +1208,7 @@ func _save_career() -> void:
 	save.set_value("career", "sponsor_contract_target", sponsor_contract_target)
 	save.set_value("career", "sponsor_contract_progress", sponsor_contract_progress)
 	save.set_value("career", "sponsor_contract_reward", sponsor_contract_reward)
+	save.set_value("career", "achievements", achievements)
 	save.set_value("career", "rival_records", rival_records)
 	save.set_value("career", "personal_bests", personal_bests)
 	save.set_value("career", "selected_event_id", selected_event_id)
