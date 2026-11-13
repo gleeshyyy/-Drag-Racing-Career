@@ -49,6 +49,14 @@ var gear := 1
 var throttle_down := false
 var shift_cooldown := 0.0
 var race_time := 0.0
+var career_race := false
+var career_wins := 0
+var career_losses := 0
+var career_cash := 0
+var career_reputation := 0
+var last_result := "No races completed"
+var rival_name := "Darius Cole"
+var rival_names := ["Darius Cole", "Maya Brooks", "Jaxon Reed", "Andre Silva"]
 
 var title_label: Label
 var status_label: Label
@@ -232,31 +240,65 @@ func _show_career_dashboard() -> void:
 	race_panel.hide()
 	section_panel.show()
 	title_label.text = "CAREER DASHBOARD"
-	status_label.text = "Season 1  •  Your racing career starts here."
+	status_label.text = "SEASON 1  •  ROOKIE DIVISION"
 	_clear_section()
-	_add_section_label("UPCOMING EVENT")
-	_add_section_label("Quarter-Mile Sprint  |  402 metres")
+	_add_section_label("NEXT EVENT  |  WEEK 1")
+	_add_section_label("Quarter-Mile Sprint  •  402 metres")
 	var event_button := _make_button("ENTER NEXT EVENT", Color("#f5a623"))
-	event_button.pressed.connect(_start_race)
+	event_button.pressed.connect(func():
+		career_race = true
+		_start_race()
+	)
 	section_panel.add_child(event_button)
-	_add_section_label("CAREER OVERVIEW")
-	_add_section_label("Wins: 0     Losses: 0")
-	_add_section_label("Cash: RWF 0     Reputation: Rookie")
-	var garage_button := _make_button("OPEN GARAGE", Color("#34485d"))
-	garage_button.add_theme_color_override("font_color", Color.WHITE)
-	garage_button.pressed.connect(func(): _show_info_page("GARAGE", "Your owned cars, upgrades and customization will appear here."))
-	section_panel.add_child(garage_button)
+	_add_section_label("CAREER RECORD")
+	_add_section_label("Wins: %d     Losses: %d" % [career_wins, career_losses])
+	_add_section_label("Cash: RWF %s     Reputation: %d" % [str(career_cash), career_reputation])
+	_add_section_label("LAST RESULT  |  " + last_result)
+	var calendar_button := _make_button("RACE CALENDAR", Color("#34485d"))
+	calendar_button.add_theme_color_override("font_color", Color.WHITE)
+	calendar_button.pressed.connect(_show_calendar)
+	section_panel.add_child(calendar_button)
+	var standings_button := _make_button("CHAMPIONSHIP STANDINGS", Color("#34485d"))
+	standings_button.add_theme_color_override("font_color", Color.WHITE)
+	standings_button.pressed.connect(_show_standings)
+	section_panel.add_child(standings_button)
 	var rivals_button := _make_button("RIVALS", Color("#34485d"))
 	rivals_button.add_theme_color_override("font_color", Color.WHITE)
-	rivals_button.pressed.connect(func(): _show_info_page("RIVALS", "Named AI drivers will develop their own careers and become your rivals."))
+	rivals_button.pressed.connect(_show_rivals)
 	section_panel.add_child(rivals_button)
+	var garage_button := _make_button("GARAGE", Color("#34485d"))
+	garage_button.add_theme_color_override("font_color", Color.WHITE)
+	garage_button.pressed.connect(func(): _show_info_page("GARAGE", "Your car collection, upgrades and customization will be developed here."))
+	section_panel.add_child(garage_button)
 	var finances_button := _make_button("FINANCES", Color("#34485d"))
 	finances_button.add_theme_color_override("font_color", Color.WHITE)
-	finances_button.pressed.connect(func(): _show_info_page("FINANCES", "Prize money, expenses, sponsorships and contracts will be tracked here."))
+	finances_button.pressed.connect(func(): _show_info_page("FINANCES", "Career cash balance: RWF %s\nPrize money and expenses will be tracked here." % str(career_cash)))
 	section_panel.add_child(finances_button)
 	var back_button := _make_button("MAIN MENU", Color("#263545"))
 	back_button.add_theme_color_override("font_color", Color.WHITE)
 	back_button.pressed.connect(_show_menu)
+	section_panel.add_child(back_button)
+
+func _show_calendar() -> void:
+	_show_subpage("RACE CALENDAR", "WEEK 1  •  ROOKIE DIVISION\n\n1. Quarter-Mile Sprint — 402 m\n2. Street Sprint — coming soon\n3. Circuit Challenge — coming soon", "BACK TO CAREER")
+
+func _show_standings() -> void:
+	var text := "ROOKIE CHAMPIONSHIP\n\n1. You — %d points\n2. %s — %d points\n3. Maya Brooks — 0 points\n4. Jaxon Reed — 0 points\n5. Andre Silva — 0 points" % [career_wins * 10, rival_name, career_wins * 8]
+	_show_subpage("STANDINGS", text, "BACK TO CAREER")
+
+func _show_rivals() -> void:
+	var text := "YOUR RIVALS\n\nDarius Cole — Aggressive starter\nMaya Brooks — Technical driver\nJaxon Reed — High top speed\nAndre Silva — Consistent racer\n\nRivals will develop as the season progresses."
+	_show_subpage("RIVALS", text, "BACK TO CAREER")
+
+func _show_subpage(page_title: String, body: String, back_caption: String) -> void:
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	title_label.text = page_title
+	status_label.text = body
+	_clear_section()
+	var back_button := _make_button(back_caption, Color("#f5a623"))
+	back_button.pressed.connect(_show_career_dashboard)
 	section_panel.add_child(back_button)
 
 func _show_info_page(page_title: String, description: String) -> void:
@@ -297,7 +339,8 @@ func _start_race() -> void:
 	menu_panel.hide()
 	race_panel.show()
 	title_label.text = "MAKE YOUR MOVE"
-	status_label.text = "Beat the rival to the finish."
+	rival_name = rival_names[(career_wins + career_losses) % rival_names.size()]
+	status_label.text = "You vs %s  •  Beat them to the finish." % rival_name
 	_update_hud()
 
 func _shift_gear() -> void:
@@ -326,15 +369,25 @@ func _finish_race() -> void:
 	throttle_down = false
 	var won := player_distance >= TRACK_LENGTH and player_distance >= rival_distance
 	race_finished = true
+	if career_race:
+		if won:
+			career_wins += 1
+			career_cash += 500
+			career_reputation += 10
+			last_result = "Victory vs " + rival_name
+		else:
+			career_losses += 1
+			last_result = "Defeat vs " + rival_name
+		career_race = false
 	menu_panel.show()
 	section_panel.hide()
 	race_panel.hide()
 	if won:
 		title_label.text = "RACE WON!"
-		status_label.text = "You beat the rival in %.2f seconds." % race_time
+		status_label.text = "You beat %s in %.2f seconds." % [rival_name, race_time]
 	else:
 		title_label.text = "RACE LOST"
-		status_label.text = "The rival got there first. Run it back."
+		status_label.text = "%s got there first. Run it back." % rival_name
 
 func _make_button(caption: String, fill: Color) -> Button:
 	var button := Button.new()
