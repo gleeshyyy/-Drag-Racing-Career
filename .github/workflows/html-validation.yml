@@ -22,7 +22,7 @@ jobs:
         run: node --check app.js
       - name: Run career smoke tests
         run: node tests/smoke.cjs
-      - name: Check required app files
+      - name: Install Playwright\n        run: npm install --no-save playwright\n      - name: Install Chromium\n        run: npx playwright install --with-deps chromium\n      - name: Run browser smoke tests\n        run: node tests/browser-smoke.cjs\n      - name: Check required app files
         run: |
           test -s index.html
           test -s styles.css
