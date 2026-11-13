@@ -261,7 +261,7 @@ func _show_career_dashboard() -> void:
 	section_panel.add_child(event_button)
 	_add_section_label("CAREER RECORD")
 	_add_section_label("Wins: %d     Losses: %d" % [career_wins, career_losses])
-	_add_section_label("Cash: RWF %s     Reputation: %d" % [str(career_cash), career_reputation])
+	_add_section_label("Cash: $%s     Reputation: %d" % [str(career_cash), career_reputation])
 	_add_section_label("LAST RESULT  |  " + last_result)
 	var calendar_button := _make_button("RACE CALENDAR", Color("#34485d"))
 	calendar_button.add_theme_color_override("font_color", Color.WHITE)
@@ -284,7 +284,7 @@ func _show_career_dashboard() -> void:
 	section_panel.add_child(garage_button)
 	var finances_button := _make_button("FINANCES", Color("#34485d"))
 	finances_button.add_theme_color_override("font_color", Color.WHITE)
-	finances_button.pressed.connect(func(): _show_info_page("FINANCES", "Career cash balance: RWF %s\nPrize money and expenses will be tracked here." % str(career_cash)))
+	finances_button.pressed.connect(func(): _show_info_page("FINANCES", "Career cash balance: $%s\nPrize money and expenses will be tracked here." % str(career_cash)))
 	section_panel.add_child(finances_button)
 	var back_button := _make_button("MAIN MENU", Color("#263545"))
 	back_button.add_theme_color_override("font_color", Color.WHITE)
@@ -313,7 +313,7 @@ func _show_garage() -> void:
 	race_panel.hide()
 	section_panel.show()
 	title_label.text = "YOUR GARAGE"
-	status_label.text = "Cash: RWF %s  •  Active car: %s" % [str(career_cash), active_car]
+	status_label.text = "Cash: $%s  •  Active car: %s" % [str(career_cash), active_car]
 	_clear_section()
 	_add_section_label("OWNED CARS")
 	for car in _car_catalog():
@@ -326,7 +326,7 @@ func _show_garage() -> void:
 		elif is_owned:
 			caption = "SELECT  •  " + car_name
 		else:
-			caption = "BUY  •  %s  •  RWF %s" % [car_name, str(car["price"])]
+			caption = "BUY  •  %s  •  $%s" % [car_name, str(car["price"])]
 		var car_button := _make_button(caption, Color("#f5a623") if is_active else Color("#34485d"))
 		if not is_active:
 			car_button.add_theme_color_override("font_color", Color.WHITE)
@@ -349,7 +349,7 @@ func _buy_car(car_name: String) -> void:
 		if str(car["name"]) == car_name and not owned_cars.has(car_name):
 			var price := int(car["price"])
 			if career_cash < price:
-				status_label.text = "Not enough cash. You need RWF %s." % str(price - career_cash)
+				status_label.text = "Not enough cash. You need $%s." % str(price - career_cash)
 				return
 			career_cash -= price
 			owned_cars.append(car_name)
