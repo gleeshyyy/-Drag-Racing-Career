@@ -367,9 +367,10 @@ func _update_hud() -> void:
 func _finish_race() -> void:
 	race_active = false
 	throttle_down = false
+	var was_career_race := career_race
 	var won := player_distance >= TRACK_LENGTH and player_distance >= rival_distance
-	race_finished = true
-	if career_race:
+	trace_finished = true
+	if was_career_race:
 		if won:
 			career_wins += 1
 			career_cash += 500
@@ -379,15 +380,18 @@ func _finish_race() -> void:
 			career_losses += 1
 			last_result = "Defeat vs " + rival_name
 		career_race = false
-	menu_panel.show()
-	section_panel.hide()
-	race_panel.hide()
-	if won:
-		title_label.text = "RACE WON!"
-		status_label.text = "You beat %s in %.2f seconds." % [rival_name, race_time]
+	trace_panel.hide()
+	if was_career_race:
+		_show_career_dashboard()
 	else:
-		title_label.text = "RACE LOST"
-		status_label.text = "%s got there first. Run it back." % rival_name
+		menu_panel.show()
+		section_panel.hide()
+		if won:
+			title_label.text = "RACE WON!"
+			status_label.text = "You beat %s in %.2f seconds." % [rival_name, race_time]
+		else:
+			title_label.text = "RACE LOST"
+			status_label.text = "%s got there first. Run it back." % rival_name
 
 func _make_button(caption: String, fill: Color) -> Button:
 	var button := Button.new()
