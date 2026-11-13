@@ -277,9 +277,18 @@ func _build_interface() -> void:
 	settings_button.pressed.connect(func(): _show_info_page("SETTINGS", "Game settings will be added here."))
 	menu_panel.add_child(settings_button)
 
+	var section_scroll := ScrollContainer.new()
+	section_scroll.name = "CareerContentScroll"
+	section_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	section_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	section_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	root.add_child(section_scroll)
 	section_panel = VBoxContainer.new()
+	section_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	section_panel.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	section_panel.add_theme_constant_override("separation", 10)
-	root.add_child(section_panel)
+	section_scroll.add_child(section_panel)
 	section_panel.hide()
 	race_panel = VBoxContainer.new()
 	race_panel.add_theme_constant_override("separation", 10)
