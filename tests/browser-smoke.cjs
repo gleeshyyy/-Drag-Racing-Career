@@ -36,6 +36,10 @@ const server = http.createServer((req, res) => {
     assert.match(await page.locator('#screen').innerText(), /VEHICLE DEALERSHIP/);
     await page.locator('[data-go="dashboard"]').click();
     await page.locator('[data-go="racing"]').click();
+    await page.locator('#camera-toggle').click();
+    assert.match(await page.locator('.race-track').getAttribute('class'), /camera-top/);
+    await page.locator('#camera-toggle').click();
+    assert.doesNotMatch(await page.locator('.race-track').getAttribute('class'), /camera-top/);
     await page.locator('#stage-race').click();
     await page.waitForFunction(() => document.querySelector('#launch-car')?.textContent === 'LAUNCH NOW', { timeout: 5000 });
     await page.locator('#launch-car').click();
