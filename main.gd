@@ -226,6 +226,7 @@ var shift_button: Button
 var race_panel: VBoxContainer
 var menu_panel: VBoxContainer
 var section_panel: VBoxContainer
+var section_scroll: ScrollContainer
 var nav_panel: HBoxContainer
 var track_visual: DragTrack
 var track_title_label: Label
@@ -345,7 +346,7 @@ func _build_interface() -> void:
 	settings_button.pressed.connect(_show_settings)
 	menu_panel.add_child(settings_button)
 
-	var section_scroll := ScrollContainer.new()
+	section_scroll = ScrollContainer.new()
 	section_scroll.name = "CareerContentScroll"
 	section_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	section_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -2683,6 +2684,7 @@ func _show_info_page(page_title: String, description: String) -> void:
 
 func _clear_section() -> void:
 	nav_panel.show()
+	section_scroll.scroll_vertical = 0
 	for child in section_panel.get_children():
 		section_panel.remove_child(child)
 		child.queue_free()
