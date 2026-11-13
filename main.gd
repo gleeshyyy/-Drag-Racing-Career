@@ -62,6 +62,7 @@ var shift_cooldown := 0.0
 var race_time := 0.0
 var race_top_speed := 0.0
 var nitro_remaining := 100.0
+var nitro_capacity := 100.0
 var nitro_used := 0.0
 var nitro_down := false
 var nitro_active := false
@@ -296,8 +297,8 @@ func _build_interface() -> void:
 	race_panel.add_child(nitro_button)
 	nitro_bar = ProgressBar.new()
 	nitro_bar.min_value = 0.0
-	nitro_bar.max_value = 100.0
-	nitro_bar.value = 100.0
+	nitro_bar.max_value = nitro_capacity
+	nitro_bar.value = nitro_remaining
 	nitro_bar.show_percentage = false
 	race_panel.add_child(nitro_bar)
 
@@ -543,7 +544,8 @@ func _upgrade_catalog() -> Array:
 		{"name": "Engine", "base_price": 1200, "effect": "+5 km/h and +1.5 acceleration per level"},
 		{"name": "Turbo", "base_price": 1600, "effect": "+7 km/h and +2 acceleration per level"},
 		{"name": "Transmission", "base_price": 1000, "effect": "+9 km/h per level"},
-		{"name": "Tyres", "base_price": 800, "effect": "+1 acceleration per level"}
+		{"name": "Tyres", "base_price": 800, "effect": "+1 acceleration per level"},
+		{"name": "Nitro", "base_price": 1800, "effect": "+25% nitro tank capacity per level"}
 	]
 
 func _show_upgrades() -> void:
@@ -1060,7 +1062,10 @@ func _start_race() -> void:
 	gear = 1
 	race_time = 0.0
 	race_top_speed = 0.0
-	nitro_remaining = 100.0
+	var active_upgrades: Dictionary = car_upgrades.get(active_car, {})
+	var nitro_level := int(active_upgrades.get("Nitro", 0))
+	nitro_capacity = 100.0 + float(nitro_level) * 25.0
+	nitro_remaining = nitro_capacity
 	nitro_used = 0.0
 	nitro_down = false
 	nitro_active = false
@@ -1139,9 +1144,10 @@ func _update_hud() -> void:
 	track_visual.set_player_paint(Color(str(car_paints.get(active_car, "#f5a623"))))
 	track_visual.set_progress(player_distance / race_distance, rival_distance / race_distance)
 	if is_instance_valid(nitro_bar):
+		nitro_bar.max_value = nitro_capacity
 		nitro_bar.value = nitro_remaining
 	if is_instance_valid(nitro_button):
-		nitro_button.text = "NITRO  |  %d%%" % int(nitro_remaining)
+		nitro_button.text = "NITRO  |  %d%%" % int(nitro_remaining / maxf(1.0, nitro_capacity) * 100.0)
 		nitro_button.disabled = nitro_remaining <= 0.0
 
 func _finish_race() -> void:
@@ -1217,7 +1223,7 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 	_add_section_label("OPPONENT  |  " + rival_name)
 	_add_section_label("YOUR TIME  |  %.2f seconds" % race_time)
 	_add_section_label("TOP SPEED  |  %d km/h%s" % [int(race_top_speed), "  •  NEW RECORD!" if last_top_speed_record else ""])
-	_add_section_label("NITRO USED  |  %d%%" % int(nitro_used))
+	_add_section_label("NITRO USED  |  %d%%" % int(nitro_used / maxf(1.0, nitro_capacity) * 100.0))
 	_add_section_label("TRACK CONDITION  |  " + race_track_condition)
 	_add_section_label("DISTANCE  |  %d metres" % int(race_distance))
 	_add_section_label("PRIZE MONEY  |  $%s" % str(race_reward if was_career_race and won else 0))
