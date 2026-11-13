@@ -643,7 +643,8 @@ func _show_race_history() -> void:
 	if race_history.is_empty():
 		body += "No races recorded yet. Complete a race to start your history."
 	else:
-		for index in range(race_history.size()):
+		body += "SHOWING MOST RECENT 10 RACES\n\n"
+		for index in range(mini(race_history.size(), 10)):
 			var entry: Dictionary = race_history[index]
 			body += "%d. %s  |  %s\n" % [index + 1, str(entry.get("result", "UNKNOWN")), str(entry.get("event", "Race"))]
 			body += "Opponent: %s  •  Time: %.2f sec\n" % [str(entry.get("opponent", "Unknown")), float(entry.get("time", 0.0))]
@@ -680,6 +681,8 @@ func _check_achievements(new_personal_best: bool) -> void:
 		unlocked.append("First Victory")
 	if career_wins >= 10 and _unlock_achievement("ten_wins"):
 		unlocked.append("Ten Wins")
+	if best_win_streak >= 5 and _unlock_achievement("streak_5"):
+		unlocked.append("Unstoppable")
 	if total_races >= 25 and _unlock_achievement("veteran_25"):
 		unlocked.append("Quarter-Century Racer")
 	if _driver_level() >= 5 and _unlock_achievement("level_5"):
@@ -707,6 +710,7 @@ func _show_achievements() -> void:
 	var achievement_names := {
 		"first_win": ["First Victory", "Win your first Career race"],
 		"ten_wins": ["Ten Wins", "Earn 10 Career victories"],
+		"streak_5": ["Unstoppable", "Win 5 Career races in a row"],
 		"veteran_25": ["Quarter-Century Racer", "Complete 25 Career races"],
 		"level_5": ["Rising Star", "Reach Driver Level 5"],
 		"season_champion": ["Season Champion", "Win a complete championship season"],
