@@ -801,20 +801,50 @@ func _show_racing_hub() -> void:
 	race_panel.hide()
 	section_panel.show()
 	title_label.text = "RACE CONTROL"
-	status_label.text = "EVENTS, CHAMPIONSHIPS AND COMPETITION"
+	status_label.text = "COMPETITION  /  EVENTS  /  CHAMPIONSHIPS"
 	_clear_section()
-	_add_section_label("RACE OPERATIONS")
+
+	var hero := PanelContainer.new()
+	hero.add_theme_stylebox_override("panel", _dashboard_card_style(Color("#f5a623")))
+	var hero_box := VBoxContainer.new()
+	hero_box.add_theme_constant_override("separation", 5)
+	hero.add_child(hero_box)
+	var hero_kicker := _small_label("RACE OPERATIONS  /  SEASON %d" % season_number)
+	hero_kicker.add_theme_color_override("font_color", Color("#f5a623"))
+	hero_box.add_child(hero_kicker)
+	var hero_title := Label.new()
+	hero_title.text = "THE STRIP IS YOURS."
+	hero_title.add_theme_font_size_override("font_size", 23)
+	hero_title.add_theme_color_override("font_color", Color("#f2f6fa"))
+	hero_box.add_child(hero_title)
+	var event: Dictionary = _get_selected_event()
+	hero_box.add_child(_small_label("NEXT EVENT  •  %s  •  %d M" % [str(event["name"]).to_upper(), int(event["distance"])]))
+	var launch := _make_button("ENTER CAREER RACE  →", Color("#f5a623"))
+	launch.add_theme_color_override("font_color", Color("#111923"))
+	launch.pressed.connect(func():
+		career_race = true
+		_start_race()
+	)
+	hero_box.add_child(launch)
+	section_panel.add_child(hero)
+
+	var operations_heading := _small_label("RACE OPERATIONS")
+	operations_heading.add_theme_color_override("font_color", Color("#00d8ef"))
+	section_panel.add_child(operations_heading)
 	var race_grid := GridContainer.new()
-	race_grid.columns = 2
+	race_grid.columns = 2 if get_viewport_rect().size.x >= 520.0 else 1
 	race_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	race_grid.add_theme_constant_override("h_separation", 9)
 	race_grid.add_theme_constant_override("v_separation", 9)
 	section_panel.add_child(race_grid)
-	race_grid.add_child(_make_feature_card("CAREER EVENTS", "SELECT YOUR NEXT EVENT", Color("#f5a623"), _show_event_selection))
+	race_grid.add_child(_make_feature_card("CAREER EVENTS", "DISTANCES, ENTRY FEES & PRIZES", Color("#f5a623"), _show_event_selection))
 	race_grid.add_child(_make_feature_card("QUICK RACE", "OFFLINE AI MATCHMAKING", Color("#00c7e8"), _show_quick_matchmaking))
-	_add_section_label("CHAMPIONSHIPS & RESULTS")
+
+	var results_heading := _small_label("CHAMPIONSHIPS & RESULTS")
+	results_heading.add_theme_color_override("font_color", Color("#00d8ef"))
+	section_panel.add_child(results_heading)
 	var results_grid := GridContainer.new()
-	results_grid.columns = 2
+	results_grid.columns = 2 if get_viewport_rect().size.x >= 520.0 else 1
 	results_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	results_grid.add_theme_constant_override("h_separation", 9)
 	results_grid.add_theme_constant_override("v_separation", 9)
@@ -824,10 +854,13 @@ func _show_racing_hub() -> void:
 	results_grid.add_child(_make_feature_card("SEASON STANDINGS", "POINTS & POSITIONS", Color("#65798d"), _show_season_standings))
 	results_grid.add_child(_make_feature_card("RIVALS", "DRIVER RECORDS", Color("#e85d75"), _show_rivals))
 	results_grid.add_child(_make_feature_card("RIVAL CHALLENGES", "ONE-ON-ONE DUELS", Color("#e85d75"), _show_rival_challenges))
+
 	if professional_license:
-		_add_section_label("PROFESSIONAL DIVISION")
+		var pro_heading := _small_label("PROFESSIONAL DIVISION")
+		pro_heading.add_theme_color_override("font_color", Color("#f5a623"))
+		section_panel.add_child(pro_heading)
 		var pro_grid := GridContainer.new()
-		pro_grid.columns = 2
+		pro_grid.columns = 2 if get_viewport_rect().size.x >= 520.0 else 1
 		pro_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		pro_grid.add_theme_constant_override("h_separation", 9)
 		pro_grid.add_theme_constant_override("v_separation", 9)
@@ -836,9 +869,11 @@ func _show_racing_hub() -> void:
 		pro_grid.add_child(_make_feature_card("PRO STANDINGS", "DRIVER TABLE", Color("#65798d"), _show_professional_standings))
 		pro_grid.add_child(_make_feature_card("TEAM SERIES", "PRO TEAM POINTS", Color("#65798d"), _show_professional_team_standings))
 	if national_pathway_unlocked:
-		_add_section_label("NATIONAL DIVISION")
+		var national_heading := _small_label("NATIONAL DIVISION")
+		national_heading.add_theme_color_override("font_color", Color("#f5a623"))
+		section_panel.add_child(national_heading)
 		var national_grid := GridContainer.new()
-		national_grid.columns = 2
+		national_grid.columns = 2 if get_viewport_rect().size.x >= 520.0 else 1
 		national_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		national_grid.add_theme_constant_override("h_separation", 9)
 		national_grid.add_theme_constant_override("v_separation", 9)
@@ -847,9 +882,11 @@ func _show_racing_hub() -> void:
 		national_grid.add_child(_make_feature_card("NATIONAL TABLE", "DRIVER STANDINGS", Color("#65798d"), _show_national_standings))
 		national_grid.add_child(_make_feature_card("NATIONAL TEAMS", "TEAM CHAMPIONSHIP", Color("#65798d"), _show_national_team_standings))
 	if international_pathway_unlocked:
-		_add_section_label("INTERNATIONAL DIVISION")
+		var international_heading := _small_label("INTERNATIONAL DIVISION")
+		international_heading.add_theme_color_override("font_color", Color("#f5a623"))
+		section_panel.add_child(international_heading)
 		var international_grid := GridContainer.new()
-		international_grid.columns = 2
+		international_grid.columns = 2 if get_viewport_rect().size.x >= 520.0 else 1
 		international_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		international_grid.add_theme_constant_override("h_separation", 9)
 		international_grid.add_theme_constant_override("v_separation", 9)
@@ -858,9 +895,11 @@ func _show_racing_hub() -> void:
 		international_grid.add_child(_make_feature_card("WORLD TABLE", "INTERNATIONAL STANDINGS", Color("#65798d"), _show_international_standings))
 		international_grid.add_child(_make_feature_card("WORLD TEAMS", "TEAM CHAMPIONSHIP", Color("#65798d"), _show_international_team_standings))
 	if superstar_pathway_unlocked:
-		_add_section_label("GLOBAL LEGENDS")
+		var legends_heading := _small_label("GLOBAL LEGENDS")
+		legends_heading.add_theme_color_override("font_color", Color("#d6a52d"))
+		section_panel.add_child(legends_heading)
 		var legends_grid := GridContainer.new()
-		legends_grid.columns = 2
+		legends_grid.columns = 2 if get_viewport_rect().size.x >= 520.0 else 1
 		legends_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		legends_grid.add_theme_constant_override("h_separation", 9)
 		legends_grid.add_theme_constant_override("v_separation", 9)
@@ -868,17 +907,40 @@ func _show_racing_hub() -> void:
 		legends_grid.add_child(_make_feature_card("SUPERSTAR", "GLOBAL CHAMPIONSHIP", Color("#d6a52d"), _show_superstar_championship))
 		legends_grid.add_child(_make_feature_card("LEGENDS TABLE", "ELITE DRIVER STANDINGS", Color("#65798d"), _show_superstar_standings))
 		legends_grid.add_child(_make_feature_card("HALL OF FAME", "CAREER LEGACY", Color("#d6a52d"), _show_global_hall_of_fame))
+	var back := _make_button("BACK TO CAREER HQ", Color("#263545"))
+	back.add_theme_color_override("font_color", Color.WHITE)
+	back.pressed.connect(_show_career_dashboard)
+	section_panel.add_child(back)
 
 func _show_more_hub() -> void:
 	menu_panel.hide()
 	race_panel.hide()
 	section_panel.show()
-	title_label.text = "CAREER & MANAGEMENT"
-	status_label.text = "YOUR STORY, MONEY AND DRIVER RECORD"
+	title_label.text = "MANAGEMENT"
+	status_label.text = "BUILD YOUR CAREER BEYOND THE FINISH LINE"
 	_clear_section()
-	_add_section_label("STORY & CONTACTS")
+
+	var overview := PanelContainer.new()
+	overview.add_theme_stylebox_override("panel", _dashboard_card_style(Color("#9b8cff")))
+	var overview_box := VBoxContainer.new()
+	overview_box.add_theme_constant_override("separation", 5)
+	overview.add_child(overview_box)
+	var kicker := _small_label("CAREER OFFICE  /  MONTH %d" % career_month)
+	kicker.add_theme_color_override("font_color", Color("#9b8cff"))
+	overview_box.add_child(kicker)
+	var headline := Label.new()
+	headline.text = "CONTROL YOUR LEGACY."
+	headline.add_theme_font_size_override("font_size", 22)
+	headline.add_theme_color_override("font_color", Color("#f2f6fa"))
+	overview_box.add_child(headline)
+	overview_box.add_child(_small_label("CASH  $%s     •     TEAM  %s" % [_format_number(career_cash), current_team if current_team != "" else "INDEPENDENT"]))
+	section_panel.add_child(overview)
+
+	var story_heading := _small_label("STORY & CONTACTS")
+	story_heading.add_theme_color_override("font_color", Color("#f5a623"))
+	section_panel.add_child(story_heading)
 	var story_grid := GridContainer.new()
-	story_grid.columns = 2
+	story_grid.columns = 2 if get_viewport_rect().size.x >= 520.0 else 1
 	story_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	story_grid.add_theme_constant_override("h_separation", 9)
 	story_grid.add_theme_constant_override("v_separation", 9)
@@ -887,9 +949,12 @@ func _show_more_hub() -> void:
 	story_grid.add_child(_make_feature_card("JASPER'S GIGS", "SIDE WORK & REWARDS", Color("#00c7e8"), _show_jasper_jobs))
 	story_grid.add_child(_make_feature_card("CAREER INBOX", "%d MESSAGES" % career_inbox.size(), Color("#00aebb"), _show_career_inbox))
 	story_grid.add_child(_make_feature_card("RIVAL CHALLENGES", "PERSONAL DUELS", Color("#e85d75"), _show_rival_challenges))
-	_add_section_label("MONEY & ORGANISATION")
+
+	var money_heading := _small_label("MONEY & ORGANISATION")
+	money_heading.add_theme_color_override("font_color", Color("#00d8ef"))
+	section_panel.add_child(money_heading)
 	var management_grid := GridContainer.new()
-	management_grid.columns = 2
+	management_grid.columns = 2 if get_viewport_rect().size.x >= 520.0 else 1
 	management_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	management_grid.add_theme_constant_override("h_separation", 9)
 	management_grid.add_theme_constant_override("v_separation", 9)
@@ -897,9 +962,12 @@ func _show_more_hub() -> void:
 	management_grid.add_child(_make_feature_card("FINANCES", "CASH, BILLS & PAYMENTS", Color("#f5a623"), _show_finances))
 	management_grid.add_child(_make_feature_card("TEAMS & CONTRACTS", "DRIVER AGREEMENTS", Color("#00c7e8"), _show_team_management))
 	management_grid.add_child(_make_feature_card("SPONSORS", "SPONSOR CONTRACTS", Color("#65798d"), _show_sponsor_contracts))
-	_add_section_label("DRIVER RECORD")
+
+	var records_heading := _small_label("DRIVER RECORD")
+	records_heading.add_theme_color_override("font_color", Color("#9b8cff"))
+	section_panel.add_child(records_heading)
 	var records_grid := GridContainer.new()
-	records_grid.columns = 2
+	records_grid.columns = 2 if get_viewport_rect().size.x >= 520.0 else 1
 	records_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	records_grid.add_theme_constant_override("h_separation", 9)
 	records_grid.add_theme_constant_override("v_separation", 9)
@@ -907,15 +975,22 @@ func _show_more_hub() -> void:
 	records_grid.add_child(_make_feature_card("DRIVER PROFILE", "LEVEL & CAREER STATS", Color("#9b8cff"), _show_driver_profile))
 	records_grid.add_child(_make_feature_card("RACE HISTORY", "PAST RESULTS", Color("#65798d"), _show_race_history))
 	records_grid.add_child(_make_feature_card("ACHIEVEMENTS", "UNLOCKED MILESTONES", Color("#d6a52d"), _show_achievements))
-	_add_section_label("GAME SETTINGS")
+
+	var settings_heading := _small_label("GAME SETTINGS")
+	settings_heading.add_theme_color_override("font_color", Color("#65798d"))
+	section_panel.add_child(settings_heading)
 	var settings_grid := GridContainer.new()
-	settings_grid.columns = 2
+	settings_grid.columns = 2 if get_viewport_rect().size.x >= 520.0 else 1
 	settings_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	settings_grid.add_theme_constant_override("h_separation", 9)
 	settings_grid.add_theme_constant_override("v_separation", 9)
 	section_panel.add_child(settings_grid)
 	settings_grid.add_child(_make_feature_card("SETTINGS", "AUDIO & GAME OPTIONS", Color("#65798d"), _show_settings))
 	settings_grid.add_child(_make_feature_card("RESET CAREER", "ERASE CAREER SAVE", Color("#ff3b30"), _show_reset_career_confirmation))
+	var back := _make_button("BACK TO CAREER HQ", Color("#263545"))
+	back.add_theme_color_override("font_color", Color.WHITE)
+	back.pressed.connect(_show_career_dashboard)
+	section_panel.add_child(back)
 
 func _car_catalog() -> Array:
 	return [
@@ -2266,11 +2341,30 @@ func _show_event_selection() -> void:
 	menu_panel.hide()
 	race_panel.hide()
 	section_panel.show()
-	title_label.text = "RACE EVENTS"
-	status_label.text = "CHOOSE YOUR NEXT EVENT  •  BIGGER DISTANCE, BIGGER REWARD"
+	title_label.text = "EVENT SELECT"
+	status_label.text = "CHOOSE YOUR DISTANCE  •  BIGGER RACES, BIGGER REWARDS"
 	_clear_section()
+	var active_event: Dictionary = _get_selected_event()
+	var spotlight := PanelContainer.new()
+	spotlight.add_theme_stylebox_override("panel", _dashboard_card_style(Color("#f5a623")))
+	var spotlight_box := VBoxContainer.new()
+	spotlight_box.add_theme_constant_override("separation", 5)
+	spotlight.add_child(spotlight_box)
+	var tag := _small_label("SELECTED EVENT")
+	tag.add_theme_color_override("font_color", Color("#f5a623"))
+	spotlight_box.add_child(tag)
+	var name_label := Label.new()
+	name_label.text = str(active_event["name"]).to_upper()
+	name_label.add_theme_font_size_override("font_size", 22)
+	name_label.add_theme_color_override("font_color", Color("#f2f6fa"))
+	spotlight_box.add_child(name_label)
+	spotlight_box.add_child(_small_label("%d METRES  •  PRIZE $%s  •  ENTRY $%s" % [int(active_event["distance"]), _format_number(int(active_event["reward"])), _format_number(_event_entry_fee(selected_event_id))]))
+	section_panel.add_child(spotlight)
+	var heading := _small_label("AVAILABLE RACE CLASSES")
+	heading.add_theme_color_override("font_color", Color("#00d8ef"))
+	section_panel.add_child(heading)
 	var events_grid := GridContainer.new()
-	events_grid.columns = 2
+	events_grid.columns = 2 if get_viewport_rect().size.x >= 520.0 else 1
 	events_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	events_grid.add_theme_constant_override("h_separation", 9)
 	events_grid.add_theme_constant_override("v_separation", 9)
@@ -2288,18 +2382,18 @@ func _show_event_selection() -> void:
 		if not unlocked:
 			caption += "\nLOCKED  •  NEED %d REP" % (required_rep - career_reputation)
 		elif selected:
-			caption += "\nCURRENTLY SELECTED"
+			caption += "\n✓ CURRENTLY SELECTED"
 		else:
 			caption += "\nTAP TO SELECT"
 		var event_button := _make_feature_card(event_name.to_upper(), caption, Color("#f5a623") if selected else Color("#00aebb"), Callable())
 		event_button.pressed.disconnect(_play_ui_click)
-		event_button.disabled = not unlocked
-		if unlocked:
+		event_button.disabled = not unlocked or selected
+		if unlocked and not selected:
 			event_button.pressed.connect(_select_event.bind(event_id))
 		events_grid.add_child(event_button)
-	var back_button := _make_button("BACK TO CAREER", Color("#263545"))
+	var back_button := _make_button("BACK TO RACE CONTROL", Color("#263545"))
 	back_button.add_theme_color_override("font_color", Color.WHITE)
-	back_button.pressed.connect(_show_career_dashboard)
+	back_button.pressed.connect(_show_racing_hub)
 	section_panel.add_child(back_button)
 
 func _select_event(event_id: String) -> void:
