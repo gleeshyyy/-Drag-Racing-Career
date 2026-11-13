@@ -101,6 +101,8 @@ var last_result := "No races completed"
 var owned_cars: Array = ["Street Compact"]
 var active_car := "Street Compact"
 var car_upgrades: Dictionary = {}
+var car_condition: Dictionary = {}
+var last_condition_loss := 0.0
 var car_paints: Dictionary = {}
 var owned_paints: Array = ["#f5a623"]
 var paint_price := 250
@@ -422,6 +424,27 @@ func _apply_active_car() -> void:
 	var tyres_level := int(upgrades.get("Tyres", 0))
 	car_max_speed += engine_level * 5.0 + turbo_level * 7.0 + transmission_level * 9.0
 	car_acceleration += engine_level * 1.5 + turbo_level * 2.0 + tyres_level * 1.0
+	var condition := clampf(float(car_condition.get(active_car, 100.0)), 0.0, 100.0)
+	var condition_factor := condition / 100.0
+	car_max_speed *= 1.0 - (1.0 - condition_factor) * 0.15
+	car_acceleration *= 1.0 - (1.0 - condition_factor) * 0.25
+
+func _service_active_car() -> void:
+	var condition := clampf(float(car_condition.get(active_car, 100.0)), 0.0, 100.0)
+	var wear := 100.0 - condition
+	if wear <= 0.0 or career_cash <= 0:
+		_show_garage()
+		return
+	var repair_amount := minf(wear, float(career_cash) / 25.0)
+	var repair_cost := mini(career_cash, int(ceil(repair_amount * 25.0)))
+	if repair_amount <= 0.0 or repair_cost <= 0:
+		_show_garage()
+		return
+	car_condition[active_car] = minf(100.0, condition + repair_amount)
+	career_cash -= repair_cost
+	_apply_active_car()
+	_save_career()
+	_show_garage()
 
 func _show_garage() -> void:
 	menu_panel.hide()
@@ -459,6 +482,14 @@ func _show_garage() -> void:
 	customize_button.add_theme_color_override("font_color", Color.WHITE)
 	customize_button.pressed.connect(_show_customization)
 	section_panel.add_child(customize_button)
+	var condition := clampf(float(car_condition.get(active_car, 100.0)), 0.0, 100.0)
+	_add_section_label("ACTIVE CAR CONDITION  |  %.1f%%" % condition)
+	_add_section_label("Wear reduces speed and acceleration. Service restores full performance.")
+	var service_cost := int(ceil((100.0 - condition) * 25.0))
+	var service_button := _make_button("SERVICE CAR  |  $%s" % str(service_cost), Color("#25a9a1"))
+	service_button.disabled = condition >= 99.9 or career_cash <= 0
+	service_button.pressed.connect(_service_active_car)
+	section_panel.add_child(service_button)
 	var back_button := _make_button("BACK", Color("#263545"))
 	back_button.add_theme_color_override("font_color", Color.WHITE)
 	if garage_return_to_career:
@@ -1167,6 +1198,11 @@ func _finish_race() -> void:
 	if last_top_speed_record:
 		personal_top_speeds[record_key] = race_top_speed
 	var race_prize := race_reward if was_career_race and won else 0
+	var condition_before := clampf(float(car_condition.get(active_car, 100.0)), 0.0, 100.0)
+	var condition_after := maxf(0.0, condition_before - race_distance / 1000.0)
+	last_condition_loss = condition_before - condition_after
+	car_condition[active_car] = condition_after
+	_apply_active_car()
 	race_history.push_front({
 		"event": race_event_name,
 		"opponent": rival_name,
@@ -1175,6 +1211,7 @@ func _finish_race() -> void:
 		"top_speed": race_top_speed,
 		"nitro_used": nitro_used,
 		"condition": race_track_condition,
+		"car_condition": condition_after,
 		"distance": int(race_distance),
 		"prize": race_prize,
 		"mode": "Career" if was_career_race else "Quick Race",
@@ -1225,6 +1262,7 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 	_add_section_label("TOP SPEED  |  %d km/h%s" % [int(race_top_speed), "  •  NEW RECORD!" if last_top_speed_record else ""])
 	_add_section_label("NITRO USED  |  %d%%" % int(nitro_used / maxf(1.0, nitro_capacity) * 100.0))
 	_add_section_label("TRACK CONDITION  |  " + race_track_condition)
+	_add_section_label("CAR CONDITION  |  %.1f%%  ( -%.2f%% wear )" % [float(car_condition.get(active_car, 100.0)), last_condition_loss])
 	_add_section_label("DISTANCE  |  %d metres" % int(race_distance))
 	_add_section_label("PRIZE MONEY  |  $%s" % str(race_reward if was_career_race and won else 0))
 	if was_career_race:
@@ -1342,6 +1380,7 @@ func _load_career_save() -> void:
 	owned_cars = save.get_value("garage", "owned_cars", ["Street Compact"])
 	active_car = str(save.get_value("garage", "active_car", "Street Compact"))
 	car_upgrades = save.get_value("garage", "car_upgrades", {})
+	car_condition = save.get_value("garage", "car_condition", {})
 	car_paints = save.get_value("garage", "car_paints", {})
 	owned_paints = save.get_value("garage", "owned_paints", ["#f5a623"])
 	if not owned_paints.has("#f5a623"):
@@ -1384,6 +1423,7 @@ func _save_career() -> void:
 	save.set_value("garage", "owned_cars", owned_cars)
 	save.set_value("garage", "active_car", active_car)
 	save.set_value("garage", "car_upgrades", car_upgrades)
+	save.set_value("garage", "car_condition", car_condition)
 	save.set_value("garage", "car_paints", car_paints)
 	save.set_value("garage", "owned_paints", owned_paints)
 	var error := save.save("user://career_save.cfg")
