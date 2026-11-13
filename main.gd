@@ -105,6 +105,14 @@ var active_jasper_job := ""
 var jasper_job_progress := 0
 var completed_jasper_jobs: Array = []
 var last_jasper_job_message := ""
+var career_month := 1
+var races_this_month := 0
+var child_support_due := 0
+var household_expenses_due := 0
+var child_support_paid_total := 0
+var household_paid_total := 0
+var missed_payment_months := 0
+var last_finance_message := ""
 var owned_cars: Array = ["Street Compact"]
 var active_car := "Street Compact"
 var car_upgrades: Dictionary = {}
@@ -409,7 +417,7 @@ func _show_career_dashboard() -> void:
 	section_panel.add_child(garage_button)
 	var finances_button := _make_button("FINANCES", Color("#34485d"))
 	finances_button.add_theme_color_override("font_color", Color.WHITE)
-	finances_button.pressed.connect(func(): _show_info_page("FINANCES", "Career cash balance: $%s\nPrize money and expenses will be tracked here." % str(career_cash)))
+	finances_button.pressed.connect(_show_finances)
 	section_panel.add_child(finances_button)
 	var back_button := _make_button("MAIN MENU", Color("#263545"))
 	back_button.add_theme_color_override("font_color", Color.WHITE)
@@ -1148,6 +1156,96 @@ func _update_jasper_job_progress() -> void:
 		_save_career()
 		return
 
+func _advance_career_month() -> void:
+	races_this_month += 1
+	if races_this_month < 4:
+		return
+	races_this_month = 0
+	career_month += 1
+	var late_support_fee := int(ceil(child_support_due * 0.10))
+	var late_household_fee := int(ceil(household_expenses_due * 0.05))
+	if child_support_due > 0 or household_expenses_due > 0:
+		missed_payment_months += 1
+		child_support_due += late_support_fee
+		household_expenses_due += late_household_fee
+		last_finance_message = "PAYMENT OVERDUE: Late fees added — $%d child support, $%d household." % [late_support_fee, late_household_fee]
+	else:
+		last_finance_message = "A new in-game month has started. Your monthly bills are now due."
+	child_support_due += 450
+	household_expenses_due += 300
+	_save_career()
+
+func _show_finances() -> void:
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	title_label.text = "PERSONAL FINANCES"
+	status_label.text = "MONTH %d  •  CASH $%s" % [career_month, str(career_cash)]
+	_clear_section()
+	_add_section_label("MONTHLY RESPONSIBILITIES")
+	_add_section_label("CHILD SUPPORT  |  $450 per month")
+	_add_section_label("Outstanding: $%s" % str(child_support_due))
+	_add_section_label("HOUSEHOLD EXPENSES  |  $300 per month")
+	_add_section_label("Outstanding: $%s" % str(household_expenses_due))
+	_add_section_label("PAYMENT DEADLINE  |  End of each 4 Career races")
+	_add_section_label("MONTHLY PROGRESS  |  %d / 4 Career races" % races_this_month)
+	_add_section_label("MISSED PAYMENT MONTHS  |  %d" % missed_payment_months)
+	_add_section_label("LATE FEES: 10%% on unpaid child support and 5%% on unpaid household bills at the next monthly deadline.")
+	_add_section_label("TOTAL PAID  |  Child support $%s  •  Household $%s" % [str(child_support_paid_total), str(household_paid_total)])
+	if last_finance_message != "":
+		_add_section_label(last_finance_message)
+	var support_button := _make_button("PAY CHILD SUPPORT  |  $%s" % str(child_support_due), Color("#25a9a1"))
+	support_button.disabled = child_support_due <= 0 or career_cash <= 0
+	support_button.pressed.connect(_pay_child_support)
+	section_panel.add_child(support_button)
+	var household_button := _make_button("PAY HOUSEHOLD BILLS  |  $%s" % str(household_expenses_due), Color("#2675a8"))
+	household_button.add_theme_color_override("font_color", Color.WHITE)
+	household_button.disabled = household_expenses_due <= 0 or career_cash <= 0
+	household_button.pressed.connect(_pay_household_expenses)
+	section_panel.add_child(household_button)
+	var all_button := _make_button("PAY ALL AFFORDABLE BILLS", Color("#f5a623"))
+	all_button.pressed.connect(_pay_all_bills)
+	section_panel.add_child(all_button)
+	var back_button := _make_button("BACK TO CAREER", Color("#263545"))
+	back_button.add_theme_color_override("font_color", Color.WHITE)
+	back_button.pressed.connect(_show_career_dashboard)
+	section_panel.add_child(back_button)
+
+func _pay_child_support() -> void:
+	var payment := mini(career_cash, child_support_due)
+	if payment <= 0:
+		return
+	career_cash -= payment
+	child_support_due -= payment
+	child_support_paid_total += payment
+	last_finance_message = "Child support payment made: $%s." % str(payment)
+	_save_career()
+	_show_finances()
+
+func _pay_household_expenses() -> void:
+	var payment := mini(career_cash, household_expenses_due)
+	if payment <= 0:
+		return
+	career_cash -= payment
+	household_expenses_due -= payment
+	household_paid_total += payment
+	last_finance_message = "Household payment made: $%s." % str(payment)
+	_save_career()
+	_show_finances()
+
+func _pay_all_bills() -> void:
+	var support_payment := mini(career_cash, child_support_due)
+	career_cash -= support_payment
+	child_support_due -= support_payment
+	child_support_paid_total += support_payment
+	var household_payment := mini(career_cash, household_expenses_due)
+	career_cash -= household_payment
+	household_expenses_due -= household_payment
+	household_paid_total += household_payment
+	last_finance_message = "Payments made: $%s child support and $%s household." % [str(support_payment), str(household_payment)]
+	_save_career()
+	_show_finances()
+
 func _show_info_page(page_title: String, description: String) -> void:
 	menu_panel.hide()
 	race_panel.hide()
@@ -1446,6 +1544,7 @@ func _finish_race() -> void:
 			current_win_streak = 0
 			last_result = "Defeat vs " + rival_name
 		_update_jasper_job_progress()
+		_advance_career_month()
 		career_race = false
 		_check_achievements(new_personal_best)
 		_save_career()
@@ -1591,6 +1690,14 @@ func _load_career_save() -> void:
 	jasper_job_progress = int(save.get_value("career", "jasper_job_progress", 0))
 	completed_jasper_jobs = save.get_value("career", "completed_jasper_jobs", [])
 	last_jasper_job_message = str(save.get_value("career", "last_jasper_job_message", ""))
+	career_month = int(save.get_value("career", "career_month", 1))
+	races_this_month = int(save.get_value("career", "races_this_month", 0))
+	child_support_due = int(save.get_value("career", "child_support_due", 0))
+	household_expenses_due = int(save.get_value("career", "household_expenses_due", 0))
+	child_support_paid_total = int(save.get_value("career", "child_support_paid_total", 0))
+	household_paid_total = int(save.get_value("career", "household_paid_total", 0))
+	missed_payment_months = int(save.get_value("career", "missed_payment_months", 0))
+	last_finance_message = str(save.get_value("career", "last_finance_message", ""))
 	story_completed = bool(save.get_value("career", "story_completed", false))
 	last_story_message = str(save.get_value("career", "last_story_message", ""))
 	owned_cars = save.get_value("garage", "owned_cars", ["Street Compact"])
@@ -1642,6 +1749,14 @@ func _save_career() -> void:
 	save.set_value("career", "jasper_job_progress", jasper_job_progress)
 	save.set_value("career", "completed_jasper_jobs", completed_jasper_jobs)
 	save.set_value("career", "last_jasper_job_message", last_jasper_job_message)
+	save.set_value("career", "career_month", career_month)
+	save.set_value("career", "races_this_month", races_this_month)
+	save.set_value("career", "child_support_due", child_support_due)
+	save.set_value("career", "household_expenses_due", household_expenses_due)
+	save.set_value("career", "child_support_paid_total", child_support_paid_total)
+	save.set_value("career", "household_paid_total", household_paid_total)
+	save.set_value("career", "missed_payment_months", missed_payment_months)
+	save.set_value("career", "last_finance_message", last_finance_message)
 	save.set_value("career", "story_completed", story_completed)
 	save.set_value("career", "last_story_message", last_story_message)
 	save.set_value("garage", "owned_cars", owned_cars)
