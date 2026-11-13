@@ -60,6 +60,7 @@ var gear := 1
 var throttle_down := false
 var shift_cooldown := 0.0
 var race_time := 0.0
+var personal_bests: Dictionary = {}
 var career_race := false
 var career_wins := 0
 var career_losses := 0
@@ -274,6 +275,11 @@ func _show_career_dashboard() -> void:
 	var event: Dictionary = _get_selected_event()
 	_add_section_label("SELECTED EVENT  |  WEEK 1")
 	_add_section_label("%s  •  %d metres  •  Prize: $%s" % [race_event_name, int(event["distance"]), str(event["reward"])])
+	var best_time := float(personal_bests.get(selected_event_id, 0.0))
+	if best_time > 0.0:
+		_add_section_label("PERSONAL BEST: %.2f seconds" % best_time)
+	else:
+		_add_section_label("PERSONAL BEST: No record yet")
 	var event_button := _make_button("ENTER SELECTED EVENT", Color("#f5a623"))
 	event_button.pressed.connect(func():
 		career_race = true
@@ -806,6 +812,11 @@ func _finish_race() -> void:
 	throttle_down = false
 	var was_career_race := career_race
 	var won := player_distance >= race_distance and player_distance >= rival_distance
+	var record_key := selected_event_id if career_race else "quick_402"
+	var previous_best := float(personal_bests.get(record_key, 0.0))
+	var new_personal_best := previous_best <= 0.0 or race_time < previous_best
+	if new_personal_best:
+		personal_bests[record_key] = race_time
 	race_finished = true
 	if was_career_race:
 		_update_rival_career_results(won)
@@ -818,6 +829,8 @@ func _finish_race() -> void:
 			career_losses += 1
 			last_result = "Defeat vs " + rival_name
 		career_race = false
+		_save_career()
+	else:
 		_save_career()
 	race_panel.hide()
 	if was_career_race:
@@ -884,6 +897,7 @@ func _load_career_save() -> void:
 	career_cash = int(save.get_value("career", "cash", 0))
 	career_reputation = int(save.get_value("career", "reputation", 0))
 	rival_records = save.get_value("career", "rival_records", {})
+	personal_bests = save.get_value("career", "personal_bests", {})
 	selected_event_id = str(save.get_value("career", "selected_event_id", "quarter_mile"))
 	race_event_name = str(_get_selected_event()["name"])
 	last_result = str(save.get_value("career", "last_result", "No races completed"))
@@ -910,6 +924,7 @@ func _save_career() -> void:
 	save.set_value("career", "cash", career_cash)
 	save.set_value("career", "reputation", career_reputation)
 	save.set_value("career", "rival_records", rival_records)
+	save.set_value("career", "personal_bests", personal_bests)
 	save.set_value("career", "selected_event_id", selected_event_id)
 	save.set_value("career", "last_result", last_result)
 	save.set_value("garage", "owned_cars", owned_cars)
