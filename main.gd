@@ -74,6 +74,7 @@ var section_panel: VBoxContainer
 var track_visual: DragTrack
 
 func _ready() -> void:
+	_load_career_save()
 	_build_interface()
 	_show_menu()
 
@@ -380,6 +381,7 @@ func _finish_race() -> void:
 			career_losses += 1
 			last_result = "Defeat vs " + rival_name
 		career_race = false
+		_save_career()
 	race_panel.hide()
 	if was_career_race:
 		_show_career_dashboard()
@@ -392,6 +394,28 @@ func _finish_race() -> void:
 		else:
 			title_label.text = "RACE LOST"
 			status_label.text = "%s got there first. Run it back." % rival_name
+
+func _load_career_save() -> void:
+	var save := ConfigFile.new()
+	var error := save.load("user://career_save.cfg")
+	if error != OK:
+		return
+	career_wins = int(save.get_value("career", "wins", 0))
+	career_losses = int(save.get_value("career", "losses", 0))
+	career_cash = int(save.get_value("career", "cash", 0))
+	career_reputation = int(save.get_value("career", "reputation", 0))
+	last_result = str(save.get_value("career", "last_result", "No races completed"))
+
+func _save_career() -> void:
+	var save := ConfigFile.new()
+	save.set_value("career", "wins", career_wins)
+	save.set_value("career", "losses", career_losses)
+	save.set_value("career", "cash", career_cash)
+	save.set_value("career", "reputation", career_reputation)
+	save.set_value("career", "last_result", last_result)
+	var error := save.save("user://career_save.cfg")
+	if error != OK:
+		push_warning("Could not save career progress.")
 
 func _make_button(caption: String, fill: Color) -> Button:
 	var button := Button.new()
