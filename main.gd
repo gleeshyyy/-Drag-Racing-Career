@@ -60,7 +60,9 @@ var gear := 1
 var throttle_down := false
 var shift_cooldown := 0.0
 var race_time := 0.0
+var race_top_speed := 0.0
 var personal_bests: Dictionary = {}
+var personal_top_speeds: Dictionary = {}
 var race_history: Array = []
 var current_win_streak := 0
 var best_win_streak := 0
@@ -138,6 +140,7 @@ func _process(delta: float) -> void:
 		player_speed = maxf(0.0, player_speed - 4.0 * delta)
 		rpm = maxf(900.0, rpm - 1800.0 * delta)
 	rival_speed = minf(rival_target_speed, rival_speed + rival_acceleration * delta)
+	race_top_speed = maxf(race_top_speed, player_speed)
 	player_distance += player_speed / 3.6 * delta
 	rival_distance += rival_speed / 3.6 * delta
 	_update_hud()
@@ -663,14 +666,17 @@ func _show_driver_profile() -> void:
 	body += "LEVEL PROGRESS  |  %d / 250 XP\\n\\n" % (career_xp % 250)
 	body += "CAREER RECORD\\n"
 	body += "Wins  |  %d\\nLosses  |  %d\\nWin Rate  |  %.1f%%\\n" % [career_wins, career_losses, win_rate]
-	body += "Reputation  |  %d\\nCash  |  $%s\\nActive Car  |  %s\\n\\n" % [career_reputation, str(career_cash), active_car]
+	body += "Reputation  |  %d\\nCash  |  $%s\\nActive Car  |  %s\\n" % [career_reputation, str(career_cash), active_car]
+	body += "Current Win Streak  |  %d\\nBest Win Streak  |  %d\\n\\n" % [current_win_streak, best_win_streak]
 	body += "PERSONAL BEST RECORDS\\n"
 	for event in _event_catalog():
 		var event_id := str(event["id"])
 		var best := float(personal_bests.get(event_id, 0.0))
-		body += "%s  |  %s\\n" % [str(event["name"]), "%.2f sec" % best if best > 0.0 else "No record"]
+		var top_speed := float(personal_top_speeds.get(event_id, 0.0))
+		body += "%s  |  %s  |  Top speed: %d km/h\\n" % [str(event["name"]), "%.2f sec" % best if best > 0.0 else "No record", int(top_speed)]
 	var quick_best := float(personal_bests.get("quick_402", 0.0))
-	body += "Quick Race  |  %s" % ("%.2f sec" % quick_best if quick_best > 0.0 else "No record")
+	var quick_top_speed := float(personal_top_speeds.get("quick_402", 0.0))
+	body += "Quick Race  |  %s  |  Top speed: %d km/h" % ["%.2f sec" % quick_best if quick_best > 0.0 else "No record", int(quick_top_speed)]
 	_show_subpage("DRIVER PROFILE", body, "BACK TO CAREER")
 
 func _check_achievements(new_personal_best: bool) -> void:
@@ -981,6 +987,7 @@ func _start_race() -> void:
 	rpm = 900.0
 	gear = 1
 	race_time = 0.0
+	race_top_speed = 0.0
 	throttle_down = false
 	if career_race:
 		rival_name = str(rival_names[(career_wins + career_losses) % rival_names.size()])
@@ -1064,12 +1071,17 @@ func _finish_race() -> void:
 	var new_personal_best := previous_best <= 0.0 or race_time < previous_best
 	if new_personal_best:
 		personal_bests[record_key] = race_time
+	var previous_top_speed := float(personal_top_speeds.get(record_key, 0.0))
+	var new_top_speed_record := race_top_speed > previous_top_speed
+	if new_top_speed_record:
+		personal_top_speeds[record_key] = race_top_speed
 	var race_prize := race_reward if was_career_race and won else 0
 	race_history.push_front({
 		"event": race_event_name,
 		"opponent": rival_name,
 		"result": "WIN" if won else "LOSS",
 		"time": race_time,
+		"top_speed": race_top_speed,
 		"distance": int(race_distance),
 		"prize": race_prize,
 		"mode": "Career" if was_career_race else "Quick Race",
@@ -1117,6 +1129,7 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 	_add_section_label("RACE RESULTS  |  " + race_event_name.to_upper())
 	_add_section_label("OPPONENT  |  " + rival_name)
 	_add_section_label("YOUR TIME  |  %.2f seconds" % race_time)
+	_add_section_label("TOP SPEED  |  %d km/h%s" % [int(race_top_speed), "  •  NEW RECORD!" if new_top_speed_record else ""])
 	_add_section_label("DISTANCE  |  %d metres" % int(race_distance))
 	_add_section_label("PRIZE MONEY  |  $%s" % str(race_reward if was_career_race and won else 0))
 	if was_career_race:
@@ -1224,6 +1237,7 @@ func _load_career_save() -> void:
 	achievements = save.get_value("career", "achievements", {})
 	rival_records = save.get_value("career", "rival_records", {})
 	personal_bests = save.get_value("career", "personal_bests", {})
+	personal_top_speeds = save.get_value("career", "personal_top_speeds", {})
 	race_history = save.get_value("career", "race_history", [])
 	current_win_streak = int(save.get_value("career", "current_win_streak", 0))
 	best_win_streak = int(save.get_value("career", "best_win_streak", 0))
@@ -1266,6 +1280,7 @@ func _save_career() -> void:
 	save.set_value("career", "achievements", achievements)
 	save.set_value("career", "rival_records", rival_records)
 	save.set_value("career", "personal_bests", personal_bests)
+	save.set_value("career", "personal_top_speeds", personal_top_speeds)
 	save.set_value("career", "race_history", race_history)
 	save.set_value("career", "current_win_streak", current_win_streak)
 	save.set_value("career", "best_win_streak", best_win_streak)
