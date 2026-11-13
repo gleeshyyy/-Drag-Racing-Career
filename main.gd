@@ -64,6 +64,8 @@ var owned_cars: Array = ["Street Compact"]
 var active_car := "Street Compact"
 var car_upgrades: Dictionary = {}
 var car_paints: Dictionary = {}
+var owned_paints: Array = ["#f5a623"]
+var paint_price := 250
 var car_max_speed := 290.0
 var car_acceleration := 23.0
 var garage_return_to_career := false
@@ -387,21 +389,34 @@ func _show_customization() -> void:
 	var current_paint := str(car_paints.get(active_car, "#f5a623"))
 	status_label.text = "%s  •  Choose your paint" % active_car
 	_clear_section()
-	_add_section_label("PAINT OPTIONS  •  FREE")
+	_add_section_label("STARTER PAINT IS FREE  •  OTHER COLORS COST $%s" % str(paint_price))
 	for paint in _paint_catalog():
 		var paint_name := str(paint["name"])
 		var paint_color := str(paint["color"])
-		var caption := "SELECTED  •  " + paint_name if current_paint == paint_color else paint_name
+		var is_owned := owned_paints.has(paint_color)
+		var caption := ""
+		if current_paint == paint_color:
+			caption = "SELECTED  •  " + paint_name
+		elif is_owned:
+			caption = "SELECT  •  " + paint_name
+		else:
+			caption = "BUY  •  " + paint_name + "  •  $%s" % str(paint_price)
 		var paint_button := _make_button(caption, Color(paint_color))
 		paint_button.add_theme_color_override("font_color", Color("#101722") if paint_color != "#171b22" else Color.WHITE)
-		paint_button.pressed.connect(_select_paint.bind(paint_color))
+		paint_button.pressed.connect(_buy_or_select_paint.bind(paint_color))
 		section_panel.add_child(paint_button)
 	var back_button := _make_button("BACK TO GARAGE", Color("#263545"))
 	back_button.add_theme_color_override("font_color", Color.WHITE)
 	back_button.pressed.connect(_show_garage)
 	section_panel.add_child(back_button)
 
-func _select_paint(paint_color: String) -> void:
+func _buy_or_select_paint(paint_color: String) -> void:
+	if not owned_paints.has(paint_color):
+		if career_cash < paint_price:
+			status_label.text = "Not enough cash. You need $%s more." % str(paint_price - career_cash)
+			return
+		career_cash -= paint_price
+		owned_paints.append(paint_color)
 	car_paints[active_car] = paint_color
 	if is_instance_valid(track_visual):
 		track_visual.set_player_paint(Color(paint_color))
@@ -613,6 +628,12 @@ func _load_career_save() -> void:
 	active_car = str(save.get_value("garage", "active_car", "Street Compact"))
 	car_upgrades = save.get_value("garage", "car_upgrades", {})
 	car_paints = save.get_value("garage", "car_paints", {})
+	owned_paints = save.get_value("garage", "owned_paints", ["#f5a623"])
+	if not owned_paints.has("#f5a623"):
+		owned_paints.append("#f5a623")
+	for car_name in car_paints.keys():
+		if not owned_paints.has(str(car_paints[car_name])):
+			car_paints[car_name] = "#f5a623"
 	if not owned_cars.has("Street Compact"):
 		owned_cars.append("Street Compact")
 	if not owned_cars.has(active_car):
@@ -630,6 +651,7 @@ func _save_career() -> void:
 	save.set_value("garage", "active_car", active_car)
 	save.set_value("garage", "car_upgrades", car_upgrades)
 	save.set_value("garage", "car_paints", car_paints)
+	save.set_value("garage", "owned_paints", owned_paints)
 	var error := save.save("user://career_save.cfg")
 	if error != OK:
 		push_warning("Could not save career progress.")
