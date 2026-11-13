@@ -191,9 +191,9 @@ func _build_interface() -> void:
 	track_card.add_child(track_box)
 	track_title_label = Label.new()
 	track_title_label.text = "NIGHT SPRINT  /  1⁄4 MILE"
-	track_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	track_title.add_theme_font_size_override("font_size", 14)
-	track_title.add_theme_color_override("font_color", Color("#f5a623"))
+	track_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	track_title_label.add_theme_font_size_override("font_size", 14)
+	track_title_label.add_theme_color_override("font_color", Color("#f5a623"))
 	track_box.add_child(track_title_label)
 	track_visual = DragTrack.new()
 	track_visual.custom_minimum_size = Vector2(0, 190)
