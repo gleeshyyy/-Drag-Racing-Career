@@ -74,6 +74,11 @@ var last_season_points: Dictionary = {}
 var last_season_number := 0
 var last_season_champion := ""
 var last_season_message := ""
+var sponsor_contract_name := ""
+var sponsor_contract_target := 0
+var sponsor_contract_progress := 0
+var sponsor_contract_reward := 0
+var last_sponsor_message := ""
 var last_xp_earned := 0
 var last_level_up := false
 var last_result := "No races completed"
@@ -318,6 +323,10 @@ func _show_career_dashboard() -> void:
 	standings_button.add_theme_color_override("font_color", Color.WHITE)
 	standings_button.pressed.connect(_show_standings)
 	section_panel.add_child(standings_button)
+	var sponsor_button := _make_button("SPONSOR CONTRACTS", Color("#34485d"))
+	sponsor_button.add_theme_color_override("font_color", Color.WHITE)
+	sponsor_button.pressed.connect(_show_sponsor_contracts)
+	section_panel.add_child(sponsor_button)
 	var season_button := _make_button("SEASON STANDINGS", Color("#34485d"))
 	season_button.add_theme_color_override("font_color", Color.WHITE)
 	season_button.pressed.connect(_show_season_standings)
@@ -630,6 +639,61 @@ func _show_driver_profile() -> void:
 	body += "Quick Race  |  %s" % ("%.2f sec" % quick_best if quick_best > 0.0 else "No record")
 	_show_subpage("DRIVER PROFILE", body, "BACK TO CAREER")
 
+func _show_sponsor_contracts() -> void:
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	title_label.text = "SPONSOR CONTRACTS"
+	status_label.text = "Accept one contract and complete its racing objective for a cash reward."
+	_clear_section()
+	if sponsor_contract_name != "":
+		_add_section_label("ACTIVE SPONSOR  |  " + sponsor_contract_name)
+		_add_section_label("CAREER RACE WINS  |  %d / %d" % [sponsor_contract_progress, sponsor_contract_target])
+		_add_section_label("COMPLETION REWARD  |  $%s" % str(sponsor_contract_reward))
+	else:
+		_add_section_label("NO ACTIVE CONTRACT")
+		_add_section_label("Choose one sponsor challenge:")
+		_add_sponsor_offer("Street Performance", 2, 1500)
+		_add_sponsor_offer("Turbo Works", 3, 2500)
+		_add_sponsor_offer("Elite Motors", 5, 4500)
+	var back_button := _make_button("BACK TO CAREER", Color("#f5a623"))
+	back_button.pressed.connect(_show_career_dashboard)
+	section_panel.add_child(back_button)
+
+func _add_sponsor_offer(sponsor: String, target: int, reward: int) -> void:
+	var offer := _make_button("%s  |  Win %d Career races  |  $%s" % [sponsor, target, str(reward)], Color("#34485d"))
+	offer.add_theme_color_override("font_color", Color.WHITE)
+	offer.pressed.connect(func(): _accept_sponsor_contract(sponsor, target, reward))
+	section_panel.add_child(offer)
+
+func _accept_sponsor_contract(sponsor: String, target: int, reward: int) -> void:
+	if sponsor_contract_name != "":
+		return
+	sponsor_contract_name = sponsor
+	sponsor_contract_target = target
+	sponsor_contract_progress = 0
+	sponsor_contract_reward = reward
+	last_sponsor_message = "SPONSOR CONTRACT ACCEPTED: " + sponsor
+	_save_career()
+	_show_sponsor_contracts()
+
+func _update_sponsor_contract(player_won: bool) -> void:
+	last_sponsor_message = ""
+	if sponsor_contract_name == "" or not player_won:
+		return
+	sponsor_contract_progress += 1
+	if sponsor_contract_progress >= sponsor_contract_target:
+		var completed_name := sponsor_contract_name
+		var earned_reward := sponsor_contract_reward
+		career_cash += earned_reward
+		sponsor_contract_name = ""
+		sponsor_contract_target = 0
+		sponsor_contract_progress = 0
+		sponsor_contract_reward = 0
+		last_sponsor_message = "SPONSOR CONTRACT COMPLETE: %s  |  BONUS $%s" % [completed_name, str(earned_reward)]
+	else:
+		last_sponsor_message = "SPONSOR PROGRESS: %d / %d WINS" % [sponsor_contract_progress, sponsor_contract_target]
+
 func _update_season_progress(player_won: bool) -> void:
 	last_season_message = ""
 	if season_events_completed.has(selected_event_id):
@@ -921,6 +985,7 @@ func _finish_race() -> void:
 		last_level_up = _driver_level() > old_level
 		_update_rival_career_results(won)
 		_update_season_progress(won)
+		_update_sponsor_contract(won)
 		if won:
 			career_wins += 1
 			career_cash += race_reward
@@ -950,6 +1015,8 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 	if was_career_race:
 		if last_season_message != "":
 			_add_section_label(last_season_message)
+		if last_sponsor_message != "":
+			_add_section_label(last_sponsor_message)
 		_add_section_label("DRIVER XP  |  +%d" % last_xp_earned)
 		_add_section_label("DRIVER LEVEL  |  %d" % _driver_level())
 		if last_level_up:
@@ -1041,6 +1108,10 @@ func _load_career_save() -> void:
 	last_season_points = save.get_value("career", "last_season_points", {})
 	last_season_number = int(save.get_value("career", "last_season_number", 0))
 	last_season_champion = str(save.get_value("career", "last_season_champion", ""))
+	sponsor_contract_name = str(save.get_value("career", "sponsor_contract_name", ""))
+	sponsor_contract_target = int(save.get_value("career", "sponsor_contract_target", 0))
+	sponsor_contract_progress = int(save.get_value("career", "sponsor_contract_progress", 0))
+	sponsor_contract_reward = int(save.get_value("career", "sponsor_contract_reward", 0))
 	rival_records = save.get_value("career", "rival_records", {})
 	personal_bests = save.get_value("career", "personal_bests", {})
 	selected_event_id = str(save.get_value("career", "selected_event_id", "quarter_mile"))
@@ -1075,6 +1146,10 @@ func _save_career() -> void:
 	save.set_value("career", "last_season_points", last_season_points)
 	save.set_value("career", "last_season_number", last_season_number)
 	save.set_value("career", "last_season_champion", last_season_champion)
+	save.set_value("career", "sponsor_contract_name", sponsor_contract_name)
+	save.set_value("career", "sponsor_contract_target", sponsor_contract_target)
+	save.set_value("career", "sponsor_contract_progress", sponsor_contract_progress)
+	save.set_value("career", "sponsor_contract_reward", sponsor_contract_reward)
 	save.set_value("career", "rival_records", rival_records)
 	save.set_value("career", "personal_bests", personal_bests)
 	save.set_value("career", "selected_event_id", selected_event_id)
