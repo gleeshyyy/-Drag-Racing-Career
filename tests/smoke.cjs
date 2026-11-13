@@ -41,7 +41,7 @@ const context = {
 context.globalThis = context;
 vm.runInNewContext(source + `
 globalThis.__test = {
-  startCareer, renderGarage, renderRacing, renderManagement, finishRace, endWeek, go, buyCar, upgrade,
+  startCareer, renderGarage, renderRacing, renderManagement, finishRace, endWeek, go, buyCar, upgrade, payChildSupport,
   getState: () => state, getSelectedEvent: () => selectedEvent,
   getSeasonEvent: () => currentSeasonEvent()
 };
@@ -102,8 +102,21 @@ assert.equal(state.season.week, 4);
 assert.equal(state.season.rounds.find(r => r.week === 3).forfeit, true);
 assert.equal(state.season.rivalPoints.Jax, 10, 'missed round awards the scheduled rival points');
 
+state.cash = 500;
+state.childSupportPaid = 0;
+state.childSupportArrears = 0;
+state.week = 4;
+game.endWeek();
+assert.equal(state.cash, 200, 'week-four child support should be deducted after living costs');
+assert.equal(state.childSupportPaid, 200);
+state.week = 8;
+state.cash = 50;
 state.season.week = 8;
 game.endWeek();
+assert.equal(state.childSupportArrears, 200, 'unpaid monthly support should become arrears');
+state.cash = 100;
+game.payChildSupport();
+assert.equal(state.childSupportArrears, 100, 'partial arrears payment should reduce the balance');
 assert.equal(state.season.number, 2, 'season should roll over after round eight');
 assert.equal(state.season.week, 1);
 assert.equal(state.season.points, 0);
