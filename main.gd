@@ -287,7 +287,7 @@ func _build_interface() -> void:
 	menu_panel.add_child(garage_button)
 	var achievements_menu_button := _make_button("ACHIEVEMENTS", Color("#34485d"))
 	achievements_menu_button.add_theme_color_override("font_color", Color.WHITE)
-	achievements_menu_button.pressed.connect(_show_achievements)
+	achievements_menu_button.pressed.connect(func(): _show_achievements(true))
 	menu_panel.add_child(achievements_menu_button)
 	var reset_menu_button := _make_button("RESET CAREER", Color("#8f3e3e"))
 	reset_menu_button.add_theme_color_override("font_color", Color.WHITE)
@@ -1105,7 +1105,8 @@ func _show_rival_challenges() -> void:
 		section_panel.add_child(challenge_button)
 	var back_button := _make_button("BACK TO CAREER", Color("#263545"))
 	back_button.add_theme_color_override("font_color", Color.WHITE)
-	back_button.pressed.connect(_show_career_dashboard)
+	var back_action: Callable = _show_menu if back_to_menu else _show_career_dashboard
+	back_button.pressed.connect(back_action)
 	section_panel.add_child(back_button)
 
 func _event_catalog() -> Array:
@@ -1609,7 +1610,7 @@ func _unlock_achievement(achievement_id: String) -> bool:
 	achievements[achievement_id] = true
 	return true
 
-func _show_achievements() -> void:
+func _show_achievements(return_to_menu: bool = false) -> void:
 	var achievement_names := {
 		"first_win": ["First Victory", "Win your first Career race"],
 		"ten_wins": ["Ten Wins", "Earn 10 Career victories"],
@@ -1629,7 +1630,7 @@ func _show_achievements() -> void:
 			unlocked_count += 1
 		body += "%s  %s\n%s\n\n" % ["[UNLOCKED]" if is_unlocked else "[LOCKED]", str(details[0]), str(details[1])]
 	body += "UNLOCKED: %d / %d" % [unlocked_count, achievement_names.size()]
-	_show_subpage("ACHIEVEMENTS", body, "BACK TO CAREER")
+	_show_subpage("ACHIEVEMENTS", body, "BACK TO MAIN MENU" if return_to_menu else "BACK TO CAREER", return_to_menu)
 
 func _show_sponsor_contracts() -> void:
 	menu_panel.hide()
@@ -1759,7 +1760,7 @@ func _ensure_rival_records() -> void:
 		if not rival_records.has(name):
 			rival_records[name] = {"wins": 0, "losses": 0, "points": 0, "reputation": 0, "rating": 50 + index * 3, "funds": 0, "car": "Street Compact", "upgrade_level": 0}
 
-func _show_subpage(page_title: String, body: String, back_caption: String) -> void:
+func _show_subpage(page_title: String, body: String, back_caption: String, back_to_menu: bool = false) -> void:
 	menu_panel.hide()
 	race_panel.hide()
 	section_panel.show()
