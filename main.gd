@@ -395,30 +395,49 @@ func _show_customization() -> void:
 	menu_panel.hide()
 	race_panel.hide()
 	section_panel.show()
-	title_label.text = "CAR CUSTOMIZATION"
+	title_label.text = "CAR PALETTE"
 	var current_paint := str(car_paints.get(active_car, "#f5a623"))
-	status_label.text = "%s  •  Choose your paint" % active_car
+	status_label.text = "%s  •  Personal paint selection" % active_car
 	_clear_section()
-	_add_section_label("STARTER PAINT IS FREE  •  OTHER COLORS COST $%s" % str(paint_price))
+	_add_section_label("ACTIVE CAR  |  " + active_car.to_upper())
+	_add_section_label("CURRENT COLOR  |  " + _paint_name_for_color(current_paint))
+	_add_section_label("OWNED COLORS ARE FREE TO REUSE ON EVERY CAR")
+	_add_section_label("NEW COLORS COST $%s EACH" % str(paint_price))
+	var palette := GridContainer.new()
+	palette.columns = 2
+	palette.add_theme_constant_override("h_separation", 10)
+	palette.add_theme_constant_override("v_separation", 10)
+	section_panel.add_child(palette)
 	for paint in _paint_catalog():
 		var paint_name := str(paint["name"])
 		var paint_color := str(paint["color"])
 		var is_owned := owned_paints.has(paint_color)
 		var caption := ""
 		if current_paint == paint_color:
-			caption = "SELECTED  •  " + paint_name
+			caption = "✓  " + paint_name + "\nCURRENT"
 		elif is_owned:
-			caption = "SELECT  •  " + paint_name
+			caption = paint_name + "\nSELECT"
 		else:
-			caption = "BUY  •  " + paint_name + "  •  $%s" % str(paint_price)
+			caption = paint_name + "\nBUY  $%s" % str(paint_price)
 		var paint_button := _make_button(caption, Color(paint_color))
-		paint_button.add_theme_color_override("font_color", Color("#101722") if paint_color != "#171b22" else Color.WHITE)
+		paint_button.custom_minimum_size = Vector2(0, 76)
+		paint_button.add_theme_font_size_override("font_size", 13)
+		if paint_color == "#171b22" or paint_color == "#8146b5" or paint_color == "#168bd2":
+			paint_button.add_theme_color_override("font_color", Color.WHITE)
+		else:
+			paint_button.add_theme_color_override("font_color", Color("#101722"))
 		paint_button.pressed.connect(_buy_or_select_paint.bind(paint_color))
-		section_panel.add_child(paint_button)
+		palette.add_child(paint_button)
 	var back_button := _make_button("BACK TO GARAGE", Color("#263545"))
 	back_button.add_theme_color_override("font_color", Color.WHITE)
 	back_button.pressed.connect(_show_garage)
 	section_panel.add_child(back_button)
+
+func _paint_name_for_color(paint_color: String) -> String:
+	for paint in _paint_catalog():
+		if str(paint["color"]) == paint_color:
+			return str(paint["name"])
+	return "Racing Orange"
 
 func _buy_or_select_paint(paint_color: String) -> void:
 	if not owned_paints.has(paint_color):
