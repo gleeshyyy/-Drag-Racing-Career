@@ -78,11 +78,15 @@ assert.equal(state.season.rivalPoints.Jax, 0, 'a later race in a scored round mu
 
 game.endWeek();
 assert.equal(state.season.week, 2);
+game.go('racing');
+assert.equal(game.getSelectedEvent(), 1);
 game.finishRace(false, 2.5, 'RED LIGHT — FALSE START', 1.5, 0);
 assert.equal(state.season.rivalPoints.Viper, 20, 'red-light false start awards round points to rival');
 
 game.endWeek();
 assert.equal(state.season.week, 3);
+game.endWeek();
+assert.equal(state.season.week, 4);
 assert.equal(state.season.rounds.find(r => r.week === 3).forfeit, true);
 assert.equal(state.season.rivalPoints.Jax, 10, 'missed round awards the scheduled rival points');
 
