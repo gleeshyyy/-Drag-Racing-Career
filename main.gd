@@ -209,6 +209,8 @@ var quick_searching := false
 var race_countdown_active := false
 var rival_records: Dictionary = {}
 
+var sound_enabled := true
+var nitro_was_active := false
 var title_label: Label
 var status_label: Label
 var speed_label: Label
@@ -228,6 +230,7 @@ var track_visual: DragTrack
 var track_title_label: Label
 
 func _ready() -> void:
+	_setup_audio()
 	_load_career_save()
 	_ensure_rival_records()
 	_ensure_professional_rival_records()
@@ -240,6 +243,9 @@ func _process(delta: float) -> void:
 	race_time += delta
 	shift_cooldown = maxf(0.0, shift_cooldown - delta)
 	nitro_active = throttle_down and nitro_down and nitro_remaining > 0.0
+	if nitro_active and not nitro_was_active:
+		_play_sfx("nitro")
+	nitro_was_active = nitro_active
 	if nitro_active:
 		var nitro_drain := minf(nitro_remaining, 35.0 * delta)
 		nitro_remaining -= nitro_drain
@@ -264,12 +270,23 @@ func _process(delta: float) -> void:
 func _build_interface() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var bg := ColorRect.new()
-	bg.color = Color("#101722")
+	bg.color = Color("#0a1019")
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
+	var top_accent := ColorRect.new()
+	top_accent.color = Color("#ff4b36")
+	top_accent.anchor_right = 1.0
+	top_accent.offset_bottom = 6.0
+	add_child(top_accent)
+	var bottom_accent := ColorRect.new()
+	bottom_accent.color = Color("#25a9e8")
+	bottom_accent.anchor_top = 1.0
+	bottom_accent.anchor_right = 1.0
+	bottom_accent.offset_top = -4.0
+	add_child(bottom_accent)
 	var root := VBoxContainer.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.add_theme_constant_override("separation", 14)
+	root.add_theme_constant_override("separation", 16)
 	root.add_theme_constant_override("margin_left", 22)
 	root.add_theme_constant_override("margin_right", 22)
 	root.add_theme_constant_override("margin_top", 30)
@@ -277,16 +294,16 @@ func _build_interface() -> void:
 	add_child(root)
 
 	var brand := Label.new()
-	brand.text = "DRAG RACING CAREER"
+	brand.text = "DRAG RACING  /  CAREER MODE"
 	brand.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	brand.add_theme_font_size_override("font_size", 17)
-	brand.add_theme_color_override("font_color", Color("#8fa6bd"))
+	brand.add_theme_font_size_override("font_size", 13)
+	brand.add_theme_color_override("font_color", Color("#ff654f"))
 	root.add_child(brand)
 
 	title_label = Label.new()
 	title_label.text = "THE STREETS\nARE YOURS."
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_label.add_theme_font_size_override("font_size", 38)
+	title_label.add_theme_font_size_override("font_size", 34)
 	title_label.add_theme_color_override("font_color", Color.WHITE)
 	root.add_child(title_label)
 
@@ -294,7 +311,7 @@ func _build_interface() -> void:
 	status_label.text = "A new career starts with one race."
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.add_theme_font_size_override("font_size", 15)
-	status_label.add_theme_color_override("font_color", Color("#a8b5c4"))
+	status_label.add_theme_color_override("font_color", Color("#91a4b8"))
 	root.add_child(status_label)
 
 	menu_panel = VBoxContainer.new()
@@ -323,7 +340,7 @@ func _build_interface() -> void:
 	menu_panel.add_child(reset_menu_button)
 	var settings_button := _make_button("SETTINGS", Color("#34485d"))
 	settings_button.add_theme_color_override("font_color", Color.WHITE)
-	settings_button.pressed.connect(func(): _show_info_page("SETTINGS", "Game settings will be added here."))
+	settings_button.pressed.connect(_show_settings)
 	menu_panel.add_child(settings_button)
 
 	var section_scroll := ScrollContainer.new()
@@ -430,6 +447,30 @@ func _show_menu() -> void:
 	menu_panel.show()
 	title_label.text = "THE STREETS\nARE YOURS."
 	status_label.text = "Choose how you want to race."
+
+func _show_settings() -> void:
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	title_label.text = "SETTINGS"
+	status_label.text = "PERSONALISE YOUR RACE EXPERIENCE"
+	_clear_section()
+	_add_section_label("AUDIO")
+	var sound_button := _make_button("SOUND EFFECTS: ON" if sound_enabled else "SOUND EFFECTS: OFF", Color("#26394d"))
+	sound_button.add_theme_color_override("font_color", Color.WHITE)
+	sound_button.pressed.connect(func():
+		sound_enabled = not sound_enabled
+		sound_button.text = "SOUND EFFECTS: ON" if sound_enabled else "SOUND EFFECTS: OFF"
+		_save_audio_setting()
+		if sound_enabled:
+			_play_sfx("click")
+	)
+	section_panel.add_child(sound_button)
+	_add_section_label("Sound effects include menu feedback, race countdown, gear shifts, nitro and race results.")
+	var back_button := _make_button("BACK TO MAIN MENU", Color("#263545"))
+	back_button.add_theme_color_override("font_color", Color.WHITE)
+	back_button.pressed.connect(_show_menu)
+	section_panel.add_child(back_button)
 
 func _show_reset_career_confirmation() -> void:
 	menu_panel.hide()
@@ -2778,6 +2819,7 @@ func _start_race() -> void:
 	nitro_used = 0.0
 	nitro_down = false
 	nitro_active = false
+	nitro_was_active = false
 	_roll_track_condition()
 	throttle_down = false
 	if career_race:
@@ -2837,8 +2879,10 @@ func _start_race() -> void:
 	race_panel.show()
 	for count in [3, 2, 1]:
 		countdown_label.text = str(count)
+		_play_sfx("countdown")
 		await get_tree().create_timer(0.85).timeout
 	countdown_label.text = "GO!"
+	_play_sfx("go")
 	countdown_label.add_theme_color_override("font_color", Color("#f5a623"))
 	title_label.text = "MAKE YOUR MOVE"
 	await get_tree().create_timer(0.45).timeout
@@ -2857,10 +2901,12 @@ func _shift_gear() -> void:
 		return
 	if rpm >= 4200.0 and gear < 5:
 		gear += 1
+		_play_sfx("shift")
 		rpm *= 0.68
 		shift_cooldown = 0.35
 		gear_label.text = "GEAR  %d" % gear
 	else:
+		_play_sfx("miss_shift")
 		player_speed = maxf(0.0, player_speed - 8.0)
 		rpm = maxf(900.0, rpm - 900.0)
 
@@ -2887,8 +2933,10 @@ func _finish_race() -> void:
 	throttle_down = false
 	nitro_down = false
 	nitro_active = false
+	nitro_was_active = false
 	var was_career_race := career_race
 	var won := player_distance >= race_distance and player_distance >= rival_distance
+	_play_sfx("win" if player_distance >= race_distance and player_distance >= rival_distance else "loss")
 	var record_key := (selected_superstar_event_id if superstar_championship_active else (selected_international_event_id if international_championship_active else (selected_national_event_id if national_championship_active else (selected_professional_event_id if professional_circuit_active else selected_event_id)))) if career_race else "quick_402"
 	last_race_record_key = record_key
 	var previous_best := float(personal_bests.get(record_key, 0.0))
@@ -3335,28 +3383,129 @@ func _save_career() -> void:
 	if error != OK:
 		push_warning("Could not save career progress.")
 
+func _setup_audio() -> void:
+	var settings := ConfigFile.new()
+	if settings.load("user://game_settings.cfg") == OK:
+		sound_enabled = bool(settings.get_value("audio", "sound_enabled", true))
+
+func _save_audio_setting() -> void:
+	var settings := ConfigFile.new()
+	settings.set_value("audio", "sound_enabled", sound_enabled)
+	settings.save("user://game_settings.cfg")
+
+func _play_ui_click() -> void:
+	_play_sfx("click")
+
+func _play_sfx(effect: String) -> void:
+	if not sound_enabled:
+		return
+	var frequency := 620.0
+	var duration := 0.055
+	var volume := 0.13
+	var end_frequency := 620.0
+	match effect:
+		"countdown":
+			frequency = 760.0
+			duration = 0.10
+			volume = 0.18
+		"go":
+			frequency = 1180.0
+			end_frequency = 1480.0
+			duration = 0.22
+			volume = 0.22
+		"shift":
+			frequency = 430.0
+			end_frequency = 920.0
+			duration = 0.075
+			volume = 0.18
+		"miss_shift":
+			frequency = 190.0
+			duration = 0.12
+			volume = 0.16
+		"nitro":
+			frequency = 150.0
+			end_frequency = 520.0
+			duration = 0.32
+			volume = 0.20
+		"win":
+			frequency = 880.0
+			end_frequency = 1320.0
+			duration = 0.36
+			volume = 0.22
+		"loss":
+			frequency = 310.0
+			end_frequency = 180.0
+			duration = 0.30
+			volume = 0.17
+	var samples := int(22050.0 * duration)
+	var audio_data := PackedByteArray()
+	audio_data.resize(samples * 2)
+	for i in range(samples):
+		var progress := float(i) / maxf(1.0, float(samples - 1))
+		var current_frequency := lerpf(frequency, end_frequency, progress)
+		var envelope := pow(1.0 - progress, 1.25)
+		var sample := sin(TAU * current_frequency * float(i) / 22050.0) * volume * envelope
+		audio_data.encode_s16(i * 2, int(clampf(sample, -1.0, 1.0) * 32767.0))
+	var stream := AudioStreamWAV.new()
+	stream.format = AudioStreamWAV.FORMAT_16_BITS
+	stream.mix_rate = 22050
+	stream.stereo = false
+	stream.data = audio_data
+	var player := AudioStreamPlayer.new()
+	player.stream = stream
+	add_child(player)
+	player.finished.connect(player.queue_free)
+	player.play()
+
 func _make_button(caption: String, fill: Color) -> Button:
 	var button := Button.new()
 	button.text = caption
-	button.custom_minimum_size = Vector2(0, 58)
-	button.add_theme_font_size_override("font_size", 16)
-	button.add_theme_color_override("font_color", Color("#101722"))
+	button.custom_minimum_size = Vector2(0, 62)
+	button.add_theme_font_size_override("font_size", 15)
+	button.add_theme_color_override("font_color", Color("#f4f7fb"))
+	button.add_theme_color_override("font_hover_color", Color.WHITE)
+	button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	button.add_theme_color_override("font_disabled_color", Color("#788594"))
+	button.add_theme_constant_override("outline_size", 0)
 	var style := StyleBoxFlat.new()
-	style.bg_color = fill
-	style.corner_radius_top_left = 12
-	style.corner_radius_top_right = 12
-	style.corner_radius_bottom_left = 12
-	style.corner_radius_bottom_right = 12
+	style.bg_color = fill.darkened(0.08)
+	style.set_content_margin_all(12)
+	style.border_width_left = 2
+	style.border_color = fill.lightened(0.12)
+	style.corner_radius_top_left = 10
+	style.corner_radius_top_right = 10
+	style.corner_radius_bottom_left = 10
+	style.corner_radius_bottom_right = 10
+	style.shadow_color = Color(0, 0, 0, 0.28)
+	style.shadow_size = 4
 	button.add_theme_stylebox_override("normal", style)
 	var hover := style.duplicate()
-	hover.bg_color = fill.lightened(0.08)
+	hover.bg_color = fill
+	hover.border_color = fill.lightened(0.3)
+	hover.shadow_size = 7
 	button.add_theme_stylebox_override("hover", hover)
+	var pressed := style.duplicate()
+	pressed.bg_color = fill.darkened(0.2)
+	pressed.shadow_size = 1
+	button.add_theme_stylebox_override("pressed", pressed)
+	var disabled := style.duplicate()
+	disabled.bg_color = Color("#26313d")
+	disabled.border_color = Color("#3a4653")
+	button.add_theme_stylebox_override("disabled", disabled)
+	button.pressed.connect(_play_ui_click)
 	return button
 
 func _panel_style(fill: String) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(fill)
-	style.set_content_margin_all(12)
+	style.border_width_left = 1
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.border_color = Color("#34485d")
+	style.shadow_color = Color(0, 0, 0, 0.22)
+	style.shadow_size = 5
+	style.set_content_margin_all(14)
 	style.corner_radius_top_left = 14
 	style.corner_radius_top_right = 14
 	style.corner_radius_bottom_left = 14
