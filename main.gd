@@ -61,6 +61,10 @@ var throttle_down := false
 var shift_cooldown := 0.0
 var race_time := 0.0
 var race_top_speed := 0.0
+var nitro_remaining := 100.0
+var nitro_used := 0.0
+var nitro_down := false
+var nitro_active := false
 var last_top_speed_record := false
 var race_track_condition := "DRY ASPHALT"
 var player_grip_multiplier := 1.0
@@ -118,6 +122,8 @@ var gear_label: Label
 var player_bar: ProgressBar
 var rival_bar: ProgressBar
 var throttle_button: Button
+var nitro_button: Button
+var nitro_bar: ProgressBar
 var shift_button: Button
 var race_panel: VBoxContainer
 var menu_panel: VBoxContainer
@@ -136,9 +142,16 @@ func _process(delta: float) -> void:
 		return
 	race_time += delta
 	shift_cooldown = maxf(0.0, shift_cooldown - delta)
+	nitro_active = throttle_down and nitro_down and nitro_remaining > 0.0
+	if nitro_active:
+		var nitro_drain := minf(nitro_remaining, 35.0 * delta)
+		nitro_remaining -= nitro_drain
+		nitro_used += nitro_drain
 	if throttle_down:
 		var gear_factor := 1.0 + float(gear - 1) * 0.025
-		player_speed = minf(car_max_speed * gear_factor, player_speed + car_acceleration * player_grip_multiplier * gear_factor * delta)
+		var boost_multiplier := 1.65 if nitro_active else 1.0
+		var speed_limit := car_max_speed + (35.0 if nitro_active else 0.0)
+		player_speed = minf(speed_limit * gear_factor, player_speed + car_acceleration * player_grip_multiplier * gear_factor * boost_multiplier * delta)
 		rpm = minf(7600.0, rpm + 3900.0 * delta)
 	else:
 		player_speed = maxf(0.0, player_speed - 4.0 * delta)
@@ -275,9 +288,21 @@ func _build_interface() -> void:
 	throttle_button.button_down.connect(func(): throttle_down = true)
 	throttle_button.button_up.connect(func(): throttle_down = false)
 	controls.add_child(throttle_button)
+	nitro_button = _make_button("NITRO  |  100%", Color("#25a9a1"))
+	nitro_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nitro_button.button_down.connect(func(): nitro_down = true)
+	nitro_button.button_up.connect(func(): nitro_down = false)
+	nitro_button.disabled = false
+	race_panel.add_child(nitro_button)
+	nitro_bar = ProgressBar.new()
+	nitro_bar.min_value = 0.0
+	nitro_bar.max_value = 100.0
+	nitro_bar.value = 100.0
+	nitro_bar.show_percentage = false
+	race_panel.add_child(nitro_bar)
 
 	var hint := Label.new()
-	hint.text = "Hold ACCELERATE. Tap SHIFT as RPM climbs."
+	hint.text = "Hold ACCELERATE. Tap SHIFT as RPM climbs. Hold NITRO with throttle for a short boost."
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.add_theme_font_size_override("font_size", 12)
@@ -1035,6 +1060,10 @@ func _start_race() -> void:
 	gear = 1
 	race_time = 0.0
 	race_top_speed = 0.0
+	nitro_remaining = 100.0
+	nitro_used = 0.0
+	nitro_down = false
+	nitro_active = false
 	_roll_track_condition()
 	throttle_down = false
 	if career_race:
@@ -1109,10 +1138,17 @@ func _update_hud() -> void:
 	rival_bar.value = minf(rival_distance, race_distance)
 	track_visual.set_player_paint(Color(str(car_paints.get(active_car, "#f5a623"))))
 	track_visual.set_progress(player_distance / race_distance, rival_distance / race_distance)
+	if is_instance_valid(nitro_bar):
+		nitro_bar.value = nitro_remaining
+	if is_instance_valid(nitro_button):
+		nitro_button.text = "NITRO  |  %d%%" % int(nitro_remaining)
+		nitro_button.disabled = nitro_remaining <= 0.0
 
 func _finish_race() -> void:
 	race_active = false
 	throttle_down = false
+	nitro_down = false
+	nitro_active = false
 	var was_career_race := career_race
 	var won := player_distance >= race_distance and player_distance >= rival_distance
 	var record_key := selected_event_id if career_race else "quick_402"
@@ -1131,6 +1167,7 @@ func _finish_race() -> void:
 		"result": "WIN" if won else "LOSS",
 		"time": race_time,
 		"top_speed": race_top_speed,
+		"nitro_used": nitro_used,
 		"condition": race_track_condition,
 		"distance": int(race_distance),
 		"prize": race_prize,
@@ -1180,6 +1217,7 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 	_add_section_label("OPPONENT  |  " + rival_name)
 	_add_section_label("YOUR TIME  |  %.2f seconds" % race_time)
 	_add_section_label("TOP SPEED  |  %d km/h%s" % [int(race_top_speed), "  •  NEW RECORD!" if last_top_speed_record else ""])
+	_add_section_label("NITRO USED  |  %d%%" % int(nitro_used))
 	_add_section_label("TRACK CONDITION  |  " + race_track_condition)
 	_add_section_label("DISTANCE  |  %d metres" % int(race_distance))
 	_add_section_label("PRIZE MONEY  |  $%s" % str(race_reward if was_career_race and won else 0))
