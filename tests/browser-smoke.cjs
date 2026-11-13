@@ -10,9 +10,9 @@ const server = http.createServer((req, res) => {
   const pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
   const file = path.resolve(root, '.' + pathname);
   if (!file.startsWith(root + path.sep) && file !== root) { res.writeHead(403).end(); return; }
-  fs.readFile(file === root ? path.join(root, 'index.html') : file, (err, data) => {
+  const target = file === root ? path.join(root, 'index.html') : file;\n  fs.readFile(target, (err, data) => {
     if (err) { res.writeHead(404).end('Not found'); return; }
-    res.writeHead(200, { 'Content-Type': types[path.extname(file)] || 'application/octet-stream' });
+    res.writeHead(200, { 'Content-Type': types[path.extname(target)] || 'application/octet-stream' });
     res.end(data);
   });
 });
