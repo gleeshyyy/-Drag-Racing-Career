@@ -1479,15 +1479,15 @@ func _ensure_international_rival_records() -> void:
 			international_rival_records[name] = {"wins":0,"losses":0,"rating":90 + index * 2,"car":"Muscle V8","upgrade_level":8 + index}
 
 func _show_international_pathway() -> void:
-	var body := "INTERNATIONAL CHAMPIONSHIP PATHWAY\\n\\n"
-	body += "Your national championship victory has attracted international attention. The Global Drag Racing Federation is reviewing your application.\\n\\n"
-	body += "QUALIFICATION REQUIREMENTS\\n"
-	body += "National Championship Title  |  %s\\n" % ("COMPLETE" if international_pathway_unlocked else "LOCKED")
-	body += "Career Wins  |  %d / 40\\n" % mini(career_wins, 40)
-	body += "Driver Level  |  %d / 15\\n" % mini(_driver_level(), 15)
-	body += "Reputation  |  %d / 500\\n" % mini(career_reputation, 500)
+	var body := "INTERNATIONAL CHAMPIONSHIP PATHWAY\n\n"
+	body += "Your national championship victory has attracted international attention. The Global Drag Racing Federation is reviewing your application.\n\n"
+	body += "QUALIFICATION REQUIREMENTS\n"
+	body += "National Championship Title  |  %s\n" % ("COMPLETE" if international_pathway_unlocked else "LOCKED")
+	body += "Career Wins  |  %d / 40\n" % mini(career_wins, 40)
+	body += "Driver Level  |  %d / 15\n" % mini(_driver_level(), 15)
+	body += "Reputation  |  %d / 500\n" % mini(career_reputation, 500)
 	var qualified := international_pathway_unlocked and career_wins >= 40 and _driver_level() >= 15 and career_reputation >= 500
-	body += "\\nSTATUS  |  %s" % ("QUALIFIED — WORLD SERIES ENTRY READY" if qualified else "INVITATION RECEIVED — COMPLETE THE REMAINING REQUIREMENTS")
+	body += "\nSTATUS  |  %s" % ("QUALIFIED — WORLD SERIES ENTRY READY" if qualified else "INVITATION RECEIVED — COMPLETE THE REMAINING REQUIREMENTS")
 	_show_subpage("INTERNATIONAL CHAMPIONSHIP", body, "BACK TO CAREER")
 	if qualified:
 		var enter_button := _make_button("REGISTER FOR INTERNATIONAL CHAMPIONSHIP", Color("#c17a28"))
@@ -1623,10 +1623,10 @@ func _show_international_standings() -> void:
 	for name in international_rival_names:
 		rows.append({"name":name,"points":int(display.get(name,0))})
 	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
-	var body := "%s\\nSEASON %d\\n\\n" % [heading,season_display]
+	var body := "%s\nSEASON %d\n\n" % [heading,season_display]
 	for index in range(rows.size()):
-		body += "%d. %s — %d points\\n" % [index + 1,str(rows[index]["name"]),int(rows[index]["points"])]
-	body += "\\nEVENTS COMPLETED  |  %d / %d" % [international_events_completed.size(),_international_event_catalog().size()]
+		body += "%d. %s — %d points\n" % [index + 1,str(rows[index]["name"]),int(rows[index]["points"])]
+	body += "\nEVENTS COMPLETED  |  %d / %d" % [international_events_completed.size(),_international_event_catalog().size()]
 	_show_subpage("INTERNATIONAL STANDINGS",body,"BACK TO CAREER")
 
 func _show_international_team_standings() -> void:
@@ -1639,12 +1639,12 @@ func _show_international_team_standings() -> void:
 	for team in display.keys():
 		rows.append({"name":str(team),"points":int(display[team])})
 	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
-	var body := heading + "\\n\\n"
+	var body := heading + "\n\n"
 	if rows.is_empty():
 		body += "Team points will appear after the first international event."
 	else:
 		for index in range(rows.size()):
-			body += "%d. %s — %d points\\n" % [index + 1,str(rows[index]["name"]),int(rows[index]["points"])]
+			body += "%d. %s — %d points\n" % [index + 1,str(rows[index]["name"]),int(rows[index]["points"])]
 	_show_subpage("WORLD TEAM CHAMPIONSHIP",body,"BACK TO CAREER")
 
 func _show_professional_standings() -> void:
@@ -2496,6 +2496,7 @@ func _roll_track_condition() -> void:
 func _start_race() -> void:
 	last_jasper_job_message = ""
 	professional_season_message = ""
+	international_season_message = ""
 	if race_countdown_active:
 		return
 	race_countdown_active = true
@@ -2811,6 +2812,8 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 			_add_section_label(professional_season_message)
 		if national_season_message != "":
 			_add_section_label(national_season_message)
+		if international_season_message != "":
+			_add_section_label(international_season_message)
 		if last_sponsor_message != "":
 			_add_section_label(last_sponsor_message)
 		if last_achievement_message != "":
