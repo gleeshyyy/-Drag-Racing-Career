@@ -660,10 +660,10 @@ func _show_season_standings() -> void:
 	for name in rival_names:
 		rows.append({"name": name, "points": int(season_points.get(name, 0))})
 	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
-	var body := "SEASON %d STANDINGS\\n\\n" % season_number
+	var body := "SEASON %d STANDINGS\n\n" % season_number
 	for index in range(rows.size()):
-		body += "%d. %s — %d points\\n" % [index + 1, str(rows[index]["name"]), int(rows[index]["points"])]
-	body += "\\nEvents completed: %d / %d" % [season_events_completed.size(), _event_catalog().size()]
+		body += "%d. %s — %d points\n" % [index + 1, str(rows[index]["name"]), int(rows[index]["points"])]
+	body += "\nEvents completed: %d / %d" % [season_events_completed.size(), _event_catalog().size()]
 	_show_subpage("SEASON STANDINGS", body, "BACK TO CAREER")
 
 func _show_standings() -> void:
