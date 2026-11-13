@@ -47,6 +47,7 @@ var race_reward := 500
 var rival_target_speed := 238.0
 var selected_event_id := "quarter_mile"
 var race_event_name := "Quarter-Mile Sprint"
+var last_race_record_key := "quarter_mile"
 
 var race_active := false
 var race_finished := false
@@ -1986,6 +1987,7 @@ func _roll_track_condition() -> void:
 
 func _start_race() -> void:
 	last_jasper_job_message = ""
+	professional_season_message = ""
 	if race_countdown_active:
 		return
 	race_countdown_active = true
@@ -2067,7 +2069,8 @@ func _start_race() -> void:
 		elif rival_car == "Muscle V8":
 			car_speed_bonus = 12.0
 			car_acceleration_bonus = 2.4
-		rival_target_speed = float(_get_selected_event()["rival_speed"]) + float(rival_rating - 50) * 0.22 + float(rival_upgrades) * 0.8 + car_speed_bonus
+		var race_event_data: Dictionary = _get_professional_event() if professional_circuit_active else _get_selected_event()
+		rival_target_speed = float(race_event_data["rival_speed"]) + float(rival_rating - 50) * 0.22 + float(rival_upgrades) * 0.8 + car_speed_bonus
 		rival_acceleration = 19.0 + float(rival_upgrades) * 0.35 + car_acceleration_bonus + float(rival_rating - 50) * 0.025
 	else:
 		rival_name = quick_rival_name if quick_rival_name != "" else rival_names[randi_range(0, rival_names.size() - 1)]
@@ -2140,6 +2143,7 @@ func _finish_race() -> void:
 	var was_career_race := career_race
 	var won := player_distance >= race_distance and player_distance >= rival_distance
 	var record_key := (selected_professional_event_id if professional_circuit_active else selected_event_id) if career_race else "quick_402"
+	last_race_record_key = record_key
 	var previous_best := float(personal_bests.get(record_key, 0.0))
 	var new_personal_best := previous_best <= 0.0 or race_time < previous_best
 	if new_personal_best:
@@ -2274,7 +2278,7 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 	if new_personal_best:
 		_add_section_label("NEW PERSONAL BEST!")
 	else:
-		var best := float(personal_bests.get(selected_event_id if was_career_race else "quick_402", 0.0))
+		var best := float(personal_bests.get(last_race_record_key, 0.0))
 		_add_section_label("PERSONAL BEST  |  %.2f seconds" % best if best > 0.0 else "PERSONAL BEST  |  No record yet")
 	if was_career_race:
 		var continue_button := _make_button("BACK TO CAREER", Color("#f5a623"))
