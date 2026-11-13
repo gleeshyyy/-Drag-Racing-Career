@@ -119,6 +119,17 @@ var defeated_challenge_rivals: Array = []
 var rival_challenge_active := false
 var rival_challenge_name := ""
 var last_career_notification := ""
+var current_team := ""
+var team_offers: Array = []
+var team_invites_sent: Array = []
+var team_contract_active := false
+var team_contract_races_left := 0
+var team_contract_races_completed := 0
+var team_contract_wins := 0
+var team_contract_win_target := 3
+var team_contract_reward := 0
+var last_team_message := ""
+var last_team_race_message := ""
 var owned_cars: Array = ["Street Compact"]
 var active_car := "Street Compact"
 var car_upgrades: Dictionary = {}
@@ -376,6 +387,10 @@ func _show_career_dashboard() -> void:
 	_add_section_label("LAST RESULT  |  " + last_result)
 	_add_section_label("CAREER TIER  |  %s" % _career_tier_name())
 	_add_section_label("NEXT UNLOCK  |  %s" % _next_career_tier_text())
+	var teams_button := _make_button("RACING TEAMS & CONTRACTS", Color("#2675a8"))
+	teams_button.add_theme_color_override("font_color", Color.WHITE)
+	teams_button.pressed.connect(_show_team_management)
+	section_panel.add_child(teams_button)
 	var inbox_button := _make_button("CAREER INBOX  |  %d NEW" % career_inbox.size(), Color("#2675a8"))
 	inbox_button.add_theme_color_override("font_color", Color.WHITE)
 	inbox_button.pressed.connect(_show_career_inbox)
@@ -481,8 +496,9 @@ func _service_active_car() -> void:
 	if wear <= 0.0 or career_cash <= 0:
 		_show_garage()
 		return
-	var repair_amount := minf(wear, float(career_cash) / 25.0)
-	var repair_cost := mini(career_cash, int(ceil(repair_amount * 25.0)))
+	var repair_rate := 25.0 * (1.0 - _team_discount_rate())
+	var repair_amount := minf(wear, float(career_cash) / maxf(1.0,repair_rate))
+	var repair_cost := mini(career_cash, int(ceil(repair_amount * repair_rate)))
 	if repair_amount <= 0.0 or repair_cost <= 0:
 		_show_garage()
 		return
@@ -498,8 +514,9 @@ func _refuel_active_car() -> void:
 	if missing_fuel <= 0.0 or career_cash <= 0:
 		_show_garage()
 		return
-	var refill_amount := minf(missing_fuel, float(career_cash) / 10.0)
-	var refill_cost := mini(career_cash, int(ceil(refill_amount * 10.0)))
+	var fuel_rate := 10.0 * (1.0 - _team_discount_rate())
+	var refill_amount := minf(missing_fuel, float(career_cash) / maxf(1.0,fuel_rate))
+	var refill_cost := mini(career_cash, int(ceil(refill_amount * fuel_rate)))
 	if refill_amount <= 0.0 or refill_cost <= 0:
 		_show_garage()
 		return
@@ -548,7 +565,9 @@ func _show_garage() -> void:
 	var condition := clampf(float(car_condition.get(active_car, 100.0)), 0.0, 100.0)
 	_add_section_label("ACTIVE CAR CONDITION  |  %.1f%%" % condition)
 	_add_section_label("Wear reduces speed and acceleration. Service restores full performance.")
-	var service_cost := int(ceil((100.0 - condition) * 25.0))
+	if current_team != "":
+		_add_section_label("TEAM DISCOUNT  |  %d%%" % int(_team_discount_rate()*100.0))
+	var service_cost := int(ceil((100.0 - condition) * 25.0 * (1.0 - _team_discount_rate())))
 	var service_button := _make_button("SERVICE CAR  |  $%s" % str(service_cost), Color("#25a9a1"))
 	service_button.disabled = condition >= 99.9 or career_cash <= 0
 	service_button.pressed.connect(_service_active_car)
@@ -556,7 +575,7 @@ func _show_garage() -> void:
 	var fuel := clampf(float(car_fuel.get(active_car, 100.0)), 0.0, 100.0)
 	_add_section_label("FUEL LEVEL  |  %.1f%%" % fuel)
 	_add_section_label("Low fuel reduces engine performance. Refuelling costs $10 per 1%.")
-	var refuel_cost := int(ceil((100.0 - fuel) * 10.0))
+	var refuel_cost := int(ceil((100.0 - fuel) * 10.0 * (1.0 - _team_discount_rate())))
 	var refuel_button := _make_button("REFUEL CAR  |  $%s" % str(refuel_cost), Color("#2675a8"))
 	refuel_button.add_theme_color_override("font_color", Color.WHITE)
 	refuel_button.disabled = fuel >= 99.9 or career_cash <= 0
@@ -684,7 +703,7 @@ func _buy_upgrade(part_name: String) -> void:
 		return
 	for part in _upgrade_catalog():
 		if str(part["name"]) == part_name:
-			var price := int(part["base_price"]) * (level + 1)
+			var price := int(ceil(float(int(part["base_price"]) * (level + 1)) * (1.0 - _team_discount_rate())))
 			if career_cash < price:
 				status_label.text = "Not enough cash. You need $%s more." % str(price - career_cash)
 				return
@@ -740,6 +759,153 @@ func _next_career_tier_text() -> String:
 		if career_reputation < int(thresholds[index]):
 			return "%s at %d reputation (%d to go)" % [names[index], int(thresholds[index]), int(thresholds[index]) - career_reputation]
 	return "MAXIMUM TIER REACHED"
+
+func _team_catalog() -> Array:
+	return [
+		{"name":"Street Kings","rep":30,"signing":500,"discount":5,"reward":1200,"description":"A local underground crew with affordable workshop access."},
+		{"name":"Apex Performance","rep":75,"signing":1200,"discount":8,"reward":2200,"description":"An amateur outfit focused on consistent race wins."},
+		{"name":"Velocity Motorsport","rep":150,"signing":2500,"discount":10,"reward":4000,"description":"A professional team with strong technical support."},
+		{"name":"National Racing Union","rep":300,"signing":5000,"discount":12,"reward":6500,"description":"A national-level operation with major race ambitions."},
+		{"name":"International Elite","rep":500,"signing":9000,"discount":15,"reward":10000,"description":"An international team with premium workshop benefits."},
+		{"name":"Superstar Works","rep":800,"signing":15000,"discount":18,"reward":16000,"description":"An elite factory-backed team for the sport's biggest names."}
+	]
+
+func _team_discount_rate() -> float:
+	for team in _team_catalog():
+		if str(team["name"]) == current_team:
+			return float(team["discount"]) / 100.0
+	return 0.0
+
+func _refresh_team_offers() -> void:
+	for team in _team_catalog():
+		var team_name := str(team["name"])
+		if career_reputation >= int(team["rep"]) and team_name != current_team and not team_offers.has(team_name) and not team_invites_sent.has(team_name):
+			team_offers.append(team_name)
+			team_invites_sent.append(team_name)
+			_add_career_notification("TEAM OFFER: %s wants to sign you. Review Racing Teams & Contracts." % team_name)
+
+func _show_team_management() -> void:
+	_refresh_team_offers()
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	title_label.text = "RACING TEAMS"
+	status_label.text = "Team relationships, contracts and driver benefits."
+	_clear_section()
+	if current_team != "":
+		var data: Dictionary = {}
+		for team in _team_catalog():
+			if str(team["name"]) == current_team:
+				data = team
+				break
+		_add_section_label("CURRENT TEAM  |  " + current_team.to_upper())
+		_add_section_label("BENEFIT  |  %d%% off upgrades, servicing and fuel" % int(data.get("discount",0)))
+		if team_contract_active:
+			_add_section_label("CONTRACT  |  %d / 6 races completed" % team_contract_races_completed)
+			_add_section_label("OBJECTIVE  |  Win %d races; current wins: %d" % [team_contract_win_target,team_contract_wins])
+			_add_section_label("RACES REMAINING  |  %d" % team_contract_races_left)
+			_add_section_label("COMPLETION BONUS  |  $%s" % str(team_contract_reward))
+		else:
+			_add_section_label("CONTRACT EXPIRED  |  Renewal available")
+		var renew := _make_button("RENEW 6-RACE CONTRACT",Color("#25a9a1"))
+		renew.pressed.connect(_renew_team_contract)
+		section_panel.add_child(renew)
+		var leave := _make_button("LEAVE CURRENT TEAM",Color("#a84444"))
+		leave.add_theme_color_override("font_color",Color.WHITE)
+		leave.pressed.connect(_leave_team)
+		section_panel.add_child(leave)
+	else:
+		_add_section_label("NO TEAM SIGNED — offers arrive as reputation grows.")
+	if team_offers.is_empty():
+		_add_section_label("No new team offers available.")
+	for team_name in team_offers:
+		for team in _team_catalog():
+			if str(team["name"]) != str(team_name):
+				continue
+			_add_section_label("%s  |  %d reputation required" % [team_name,int(team["rep"])])
+			_add_section_label(str(team["description"]))
+			_add_section_label("Signing bonus $%s  •  %d%% discount" % [str(team["signing"]),int(team["discount"])])
+			var join := _make_button("SIGN WITH "+str(team_name).to_upper(),Color("#f5a623"))
+			join.pressed.connect(_join_team.bind(str(team_name)))
+			section_panel.add_child(join)
+	var back := _make_button("BACK TO CAREER",Color("#263545"))
+	back.add_theme_color_override("font_color",Color.WHITE)
+	back.pressed.connect(_show_career_dashboard)
+	section_panel.add_child(back)
+
+func _join_team(team_name: String) -> void:
+	if not team_offers.has(team_name):
+		return
+	for team in _team_catalog():
+		if str(team["name"]) != team_name or career_reputation < int(team["rep"]):
+			continue
+		current_team = team_name
+		career_cash += int(team["signing"])
+		team_offers.erase(team_name)
+		team_contract_active = true
+		team_contract_races_left = 6
+		team_contract_races_completed = 0
+		team_contract_wins = 0
+		team_contract_win_target = 3
+		team_contract_reward = int(team["reward"])
+		last_team_message = "SIGNED: %s. $%s signing bonus received. Win 3 of your next 6 Career races for a $%s bonus." % [team_name,str(team["signing"]),str(team_contract_reward)]
+		_add_career_notification(last_team_message)
+		_save_career()
+		_show_team_management()
+		return
+
+func _renew_team_contract() -> void:
+	if current_team == "" or team_contract_active:
+		return
+	for team in _team_catalog():
+		if str(team["name"]) == current_team:
+			team_contract_active = true
+			team_contract_races_left = 6
+			team_contract_races_completed = 0
+			team_contract_wins = 0
+			team_contract_win_target = 3
+			team_contract_reward = int(team["reward"])
+			last_team_message = "CONTRACT RENEWED: %s. Win 3 of your next 6 Career races." % current_team
+			_add_career_notification(last_team_message)
+			_save_career()
+			_show_team_management()
+			return
+
+func _leave_team() -> void:
+	if current_team == "":
+		return
+	var old_team := current_team
+	current_team = ""
+	team_contract_active = false
+	team_contract_races_left = 0
+	team_contract_races_completed = 0
+	team_contract_wins = 0
+	team_contract_reward = 0
+	last_team_message = "You left %s. Team discounts and contract access have ended." % old_team
+	_add_career_notification(last_team_message)
+	_refresh_team_offers()
+	_save_career()
+	_show_team_management()
+
+func _update_team_contract(won: bool) -> void:
+	last_team_race_message = ""
+	if current_team == "" or not team_contract_active:
+		return
+	team_contract_races_completed += 1
+	team_contract_races_left = maxi(0,team_contract_races_left-1)
+	if won:
+		team_contract_wins += 1
+	if team_contract_wins >= team_contract_win_target:
+		career_cash += team_contract_reward
+		last_team_race_message = "TEAM CONTRACT COMPLETED: %s — $%s bonus paid." % [current_team,str(team_contract_reward)]
+		_add_career_notification(last_team_race_message)
+		team_contract_active = false
+	elif team_contract_races_left <= 0:
+		last_team_race_message = "TEAM CONTRACT EXPIRED: %s — %d/%d wins. You can renew." % [current_team,team_contract_wins,team_contract_win_target]
+		_add_career_notification(last_team_race_message)
+		team_contract_active = false
+	else:
+		last_team_race_message = "TEAM CONTRACT: %s — %d/%d wins, %d races remaining." % [current_team,team_contract_wins,team_contract_win_target,team_contract_races_left]
 
 func _event_min_reputation(event_id: String) -> int:
 	match event_id:
@@ -1705,7 +1871,9 @@ func _finish_race() -> void:
 			current_win_streak = 0
 			last_result = "Defeat vs " + rival_name
 		_update_jasper_job_progress()
+		_update_team_contract(won)
 		_advance_career_month()
+		_refresh_team_offers()
 		if rival_challenge_active:
 			if won:
 				var challenge_bonus := 750 + career_reputation * 2
@@ -1744,6 +1912,8 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 	_add_section_label("PRIZE MONEY  |  $%s" % str(race_reward if was_career_race and won else 0))
 	if was_career_race and last_story_message != "":
 		_add_section_label(last_story_message)
+	if was_career_race and last_team_race_message != "":
+		_add_section_label(last_team_race_message)
 	if was_career_race and last_jasper_job_message != "":
 		_add_section_label(last_jasper_job_message)
 	if was_career_race:
@@ -1864,6 +2034,16 @@ func _load_career_save() -> void:
 	completed_jasper_jobs = save.get_value("career", "completed_jasper_jobs", [])
 	last_jasper_job_message = str(save.get_value("career", "last_jasper_job_message", ""))
 	career_inbox = save.get_value("career", "career_inbox", [])
+	current_team = str(save.get_value("career", "current_team", ""))
+	team_offers = save.get_value("career", "team_offers", [])
+	team_invites_sent = save.get_value("career", "team_invites_sent", [])
+	team_contract_active = bool(save.get_value("career", "team_contract_active", false))
+	team_contract_races_left = int(save.get_value("career", "team_contract_races_left", 0))
+	team_contract_races_completed = int(save.get_value("career", "team_contract_races_completed", 0))
+	team_contract_wins = int(save.get_value("career", "team_contract_wins", 0))
+	team_contract_win_target = int(save.get_value("career", "team_contract_win_target", 3))
+	team_contract_reward = int(save.get_value("career", "team_contract_reward", 0))
+	last_team_message = str(save.get_value("career", "last_team_message", ""))
 	career_invites_sent = save.get_value("career", "career_invites_sent", [])
 	defeated_challenge_rivals = save.get_value("career", "defeated_challenge_rivals", [])
 	career_month = int(save.get_value("career", "career_month", 1))
@@ -1926,6 +2106,16 @@ func _save_career() -> void:
 	save.set_value("career", "completed_jasper_jobs", completed_jasper_jobs)
 	save.set_value("career", "last_jasper_job_message", last_jasper_job_message)
 	save.set_value("career", "career_inbox", career_inbox)
+	save.set_value("career", "current_team", current_team)
+	save.set_value("career", "team_offers", team_offers)
+	save.set_value("career", "team_invites_sent", team_invites_sent)
+	save.set_value("career", "team_contract_active", team_contract_active)
+	save.set_value("career", "team_contract_races_left", team_contract_races_left)
+	save.set_value("career", "team_contract_races_completed", team_contract_races_completed)
+	save.set_value("career", "team_contract_wins", team_contract_wins)
+	save.set_value("career", "team_contract_win_target", team_contract_win_target)
+	save.set_value("career", "team_contract_reward", team_contract_reward)
+	save.set_value("career", "last_team_message", last_team_message)
 	save.set_value("career", "career_invites_sent", career_invites_sent)
 	save.set_value("career", "defeated_challenge_rivals", defeated_challenge_rivals)
 	save.set_value("career", "career_month", career_month)
