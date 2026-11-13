@@ -1424,7 +1424,6 @@ func _update_national_season(player_won: bool) -> void:
 			national_season_message = "NATIONAL SEASON %d CHAMPION: %s. The next season awaits." % [national_season_number,last_national_champion]
 		if last_national_champion == "YOU":
 			international_pathway_unlocked = true
-			superstar_pathway_unlocked = true
 		national_season_number += 1
 		national_season_points = {}
 		national_events_completed = []
@@ -1625,6 +1624,8 @@ func _update_international_season(player_won: bool) -> void:
 		last_international_season_number = international_season_number
 		if last_international_champion == "YOU":
 			career_cash += 75000
+			lifetime_earnings += 75000
+			superstar_pathway_unlocked = true
 			career_reputation += 150
 			story_stage = 18
 			last_story_message = "CHAPTER 5 COMPLETE: You conquered the World Drag Racing Championship."
@@ -2944,6 +2945,7 @@ func _finish_race() -> void:
 			current_win_streak += 1
 			best_win_streak = maxi(best_win_streak, current_win_streak)
 			career_cash += race_reward
+			lifetime_earnings += race_reward
 			career_reputation += 10
 			last_result = "Victory vs " + rival_name
 			_check_career_tier_unlocks()
