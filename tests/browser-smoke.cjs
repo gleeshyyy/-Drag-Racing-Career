@@ -34,6 +34,7 @@ const server = http.createServer((req, res) => {
     await page.locator('[data-go="dashboard"]').click();
     await page.locator('[data-go="garage"]').click();
     assert.match(await page.locator('#screen').innerText(), /VEHICLE DEALERSHIP/);
+    await page.locator('[data-go="dashboard"]').click();
     await page.locator('[data-go="racing"]').click();
     await page.locator('#stage-race').click();
     await page.waitForFunction(() => document.querySelector('#launch-car')?.textContent === 'LAUNCH NOW', { timeout: 5000 });
