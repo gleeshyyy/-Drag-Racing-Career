@@ -666,20 +666,20 @@ func _show_driver_profile() -> void:
 	var win_rate := 0.0
 	if total_races > 0:
 		win_rate = float(career_wins) * 100.0 / float(total_races)
-	var body := "DRIVER PROFILE\\n\\n"
-	body += "DRIVER LEVEL  |  %d\\n" % _driver_level()
-	body += "TOTAL XP  |  %d\\n" % career_xp
-	body += "LEVEL PROGRESS  |  %d / 250 XP\\n\\n" % (career_xp % 250)
-	body += "CAREER RECORD\\n"
-	body += "Wins  |  %d\\nLosses  |  %d\\nWin Rate  |  %.1f%%\\n" % [career_wins, career_losses, win_rate]
-	body += "Reputation  |  %d\\nCash  |  $%s\\nActive Car  |  %s\\n" % [career_reputation, str(career_cash), active_car]
-	body += "Current Win Streak  |  %d\\nBest Win Streak  |  %d\\n\\n" % [current_win_streak, best_win_streak]
-	body += "PERSONAL BEST RECORDS\\n"
+	var body := "DRIVER PROFILE\n\n"
+	body += "DRIVER LEVEL  |  %d\n" % _driver_level()
+	body += "TOTAL XP  |  %d\n" % career_xp
+	body += "LEVEL PROGRESS  |  %d / 250 XP\n\n" % (career_xp % 250)
+	body += "CAREER RECORD\n"
+	body += "Wins  |  %d\nLosses  |  %d\nWin Rate  |  %.1f%%\n" % [career_wins, career_losses, win_rate]
+	body += "Reputation  |  %d\nCash  |  $%s\nActive Car  |  %s\n" % [career_reputation, str(career_cash), active_car]
+	body += "Current Win Streak  |  %d\nBest Win Streak  |  %d\n\n" % [current_win_streak, best_win_streak]
+	body += "PERSONAL BEST RECORDS\n"
 	for event in _event_catalog():
 		var event_id := str(event["id"])
 		var best := float(personal_bests.get(event_id, 0.0))
 		var top_speed := float(personal_top_speeds.get(event_id, 0.0))
-		body += "%s  |  %s  |  Top speed: %d km/h\\n" % [str(event["name"]), "%.2f sec" % best if best > 0.0 else "No record", int(top_speed)]
+		body += "%s  |  %s  |  Top speed: %d km/h\n" % [str(event["name"]), "%.2f sec" % best if best > 0.0 else "No record", int(top_speed)]
 	var quick_best := float(personal_bests.get("quick_402", 0.0))
 	var quick_top_speed := float(personal_top_speeds.get("quick_402", 0.0))
 	body += "Quick Race  |  %s  |  Top speed: %d km/h" % ["%.2f sec" % quick_best if quick_best > 0.0 else "No record", int(quick_top_speed)]
