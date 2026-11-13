@@ -101,6 +101,10 @@ var last_result := "No races completed"
 var story_stage := 0
 var story_completed := false
 var last_story_message := ""
+var active_jasper_job := ""
+var jasper_job_progress := 0
+var completed_jasper_jobs: Array = []
+var last_jasper_job_message := ""
 var owned_cars: Array = ["Street Compact"]
 var active_car := "Street Compact"
 var car_upgrades: Dictionary = {}
@@ -360,6 +364,10 @@ func _show_career_dashboard() -> void:
 	story_button.add_theme_color_override("font_color", Color.WHITE)
 	story_button.pressed.connect(_show_story_missions)
 	section_panel.add_child(story_button)
+	var jobs_button := _make_button("JASPER'S GIGS", Color("#34485d"))
+	jobs_button.add_theme_color_override("font_color", Color.WHITE)
+	jobs_button.pressed.connect(_show_jasper_jobs)
+	section_panel.add_child(jobs_button)
 	var history_button := _make_button("RACE HISTORY", Color("#34485d"))
 	history_button.add_theme_color_override("font_color", Color.WHITE)
 	history_button.pressed.connect(_show_race_history)
@@ -1060,6 +1068,86 @@ func _update_story_progress() -> void:
 		return
 	_save_career()
 
+func _jasper_job_catalog() -> Array:
+	return [
+		{"id": "parts_run", "name": "Spare Parts Run", "description": "Help Jasper move a set of racing parts. Complete 1 Career race.", "races": 1, "reward": 350},
+		{"id": "garage_support", "name": "Garage Support", "description": "Earn Jasper's trust by completing 2 Career races.", "races": 2, "reward": 800},
+		{"id": "night_network", "name": "Night Network", "description": "Work three race nights and build Jasper's contacts.", "races": 3, "reward": 1500}
+	]
+
+func _show_jasper_jobs() -> void:
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	title_label.text = "JASPER'S GIGS"
+	status_label.text = "SIDE WORK  •  EARN EXTRA CASH"
+	_clear_section()
+	_add_section_label("Jasper has small jobs that fit around your racing career. Accept one job at a time. Each completed Career race counts toward its objective.")
+	if story_stage == 0:
+		_add_section_label("CALL JASPER in STORY & MISSIONS to unlock his jobs.")
+	else:
+		if active_jasper_job != "":
+			var active_job: Dictionary = {}
+			for job in _jasper_job_catalog():
+				if str(job["id"]) == active_jasper_job:
+					active_job = job
+					break
+			if not active_job.is_empty():
+				_add_section_label("ACTIVE JOB  |  " + str(active_job["name"]))
+				_add_section_label("PROGRESS  |  %d / %d Career races" % [jasper_job_progress, int(active_job["races"])])
+				_add_section_label("REWARD  |  $%s" % str(active_job["reward"]))
+		else:
+			_add_section_label("NO ACTIVE JOB")
+			for job in _jasper_job_catalog():
+				var job_id := str(job["id"])
+				if completed_jasper_jobs.has(job_id):
+					_add_section_label("COMPLETED  |  " + str(job["name"]))
+					continue
+				_add_section_label(str(job["name"]) + "  •  $" + str(job["reward"]))
+				_add_section_label(str(job["description"]))
+				var accept_button := _make_button("ACCEPT  |  " + str(job["name"]), Color("#25a9a1"))
+				accept_button.pressed.connect(_accept_jasper_job.bind(job_id))
+				section_panel.add_child(accept_button)
+	if last_jasper_job_message != "":
+		_add_section_label(last_jasper_job_message)
+	var back_button := _make_button("BACK TO CAREER", Color("#263545"))
+	back_button.add_theme_color_override("font_color", Color.WHITE)
+	back_button.pressed.connect(_show_career_dashboard)
+	section_panel.add_child(back_button)
+
+func _accept_jasper_job(job_id: String) -> void:
+	if active_jasper_job != "" or completed_jasper_jobs.has(job_id):
+		return
+	for job in _jasper_job_catalog():
+		if str(job["id"]) == job_id:
+			active_jasper_job = job_id
+			jasper_job_progress = 0
+			last_jasper_job_message = "Jasper: Good. Get it done and I'll pay you when the job is complete."
+			_save_career()
+			_show_jasper_jobs()
+			return
+
+func _update_jasper_job_progress() -> void:
+	if active_jasper_job == "":
+		return
+	for job in _jasper_job_catalog():
+		if str(job["id"]) != active_jasper_job:
+			continue
+		jasper_job_progress += 1
+		var target := int(job["races"])
+		if jasper_job_progress >= target:
+			var job_name := str(job["name"])
+			var reward := int(job["reward"])
+			career_cash += reward
+			completed_jasper_jobs.append(active_jasper_job)
+			active_jasper_job = ""
+			jasper_job_progress = 0
+			last_jasper_job_message = "JASPER'S GIG COMPLETE: %s — $%s paid." % [job_name, str(reward)]
+		else:
+			last_jasper_job_message = "Jasper's gig progress: %d / %d Career races." % [jasper_job_progress, target]
+		_save_career()
+		return
+
 func _show_info_page(page_title: String, description: String) -> void:
 	menu_panel.hide()
 	race_panel.hide()
@@ -1356,6 +1444,7 @@ func _finish_race() -> void:
 			career_losses += 1
 			current_win_streak = 0
 			last_result = "Defeat vs " + rival_name
+		_update_jasper_job_progress()
 		career_race = false
 		_check_achievements(new_personal_best)
 		_save_career()
@@ -1382,6 +1471,8 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 	_add_section_label("PRIZE MONEY  |  $%s" % str(race_reward if was_career_race and won else 0))
 	if was_career_race and last_story_message != "":
 		_add_section_label(last_story_message)
+	if was_career_race and last_jasper_job_message != "":
+		_add_section_label(last_jasper_job_message)
 	if was_career_race:
 		if last_season_message != "":
 			_add_section_label(last_season_message)
@@ -1495,6 +1586,10 @@ func _load_career_save() -> void:
 	race_event_name = str(_get_selected_event()["name"])
 	last_result = str(save.get_value("career", "last_result", "No races completed"))
 	story_stage = int(save.get_value("career", "story_stage", 0))
+	active_jasper_job = str(save.get_value("career", "active_jasper_job", ""))
+	jasper_job_progress = int(save.get_value("career", "jasper_job_progress", 0))
+	completed_jasper_jobs = save.get_value("career", "completed_jasper_jobs", [])
+	last_jasper_job_message = str(save.get_value("career", "last_jasper_job_message", ""))
 	story_completed = bool(save.get_value("career", "story_completed", false))
 	last_story_message = str(save.get_value("career", "last_story_message", ""))
 	owned_cars = save.get_value("garage", "owned_cars", ["Street Compact"])
@@ -1542,6 +1637,10 @@ func _save_career() -> void:
 	save.set_value("career", "selected_event_id", selected_event_id)
 	save.set_value("career", "last_result", last_result)
 	save.set_value("career", "story_stage", story_stage)
+	save.set_value("career", "active_jasper_job", active_jasper_job)
+	save.set_value("career", "jasper_job_progress", jasper_job_progress)
+	save.set_value("career", "completed_jasper_jobs", completed_jasper_jobs)
+	save.set_value("career", "last_jasper_job_message", last_jasper_job_message)
 	save.set_value("career", "story_completed", story_completed)
 	save.set_value("career", "last_story_message", last_story_message)
 	save.set_value("garage", "owned_cars", owned_cars)
