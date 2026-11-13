@@ -79,6 +79,7 @@ var rival_names := ["Darius Cole", "Maya Brooks", "Jaxon Reed", "Andre Silva"]
 var quick_rival_name := ""
 var quick_searching := false
 var race_countdown_active := false
+var rival_records: Dictionary = {}
 
 var title_label: Label
 var status_label: Label
@@ -98,6 +99,7 @@ var track_title_label: Label
 
 func _ready() -> void:
 	_load_career_save()
+	_ensure_rival_records()
 	_build_interface()
 	_show_menu()
 
@@ -581,12 +583,28 @@ func _show_calendar() -> void:
 	_show_event_selection()
 
 func _show_standings() -> void:
-	var text := "ROOKIE CHAMPIONSHIP\n\n1. You — %d points\n2. %s — %d points\n3. Maya Brooks — 0 points\n4. Jaxon Reed — 0 points\n5. Andre Silva — 0 points" % [career_wins * 10, rival_name, career_wins * 8]
-	_show_subpage("STANDINGS", text, "BACK TO CAREER")
+	var rows: Array = [{"name": "YOU", "points": career_wins * 10}]
+	for name in rival_names:
+		var record: Dictionary = rival_records.get(name, {})
+		rows.append({"name": name, "points": int(record.get("points", 0))})
+	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
+	var body := "ROOKIE CHAMPIONSHIP\\n\\n"
+	for index in range(rows.size()):
+		body += "%d. %s — %d points\\n" % [index + 1, str(rows[index]["name"]), int(rows[index]["points"])]
+	_show_subpage("STANDINGS", body, "BACK TO CAREER")
 
 func _show_rivals() -> void:
-	var text := "YOUR RIVALS\n\nDarius Cole — Aggressive starter\nMaya Brooks — Technical driver\nJaxon Reed — High top speed\nAndre Silva — Consistent racer\n\nRivals will develop as the season progresses."
-	_show_subpage("RIVALS", text, "BACK TO CAREER")
+	var body := "YOUR RIVALS\\n\\n"
+	for name in rival_names:
+		var record: Dictionary = rival_records.get(name, {})
+		body += "%s\\nWins: %d  Losses: %d\\nPoints: %d  Reputation: %d\\nCar rating: %d/100\\n\\n" % [name, int(record.get("wins", 0)), int(record.get("losses", 0)), int(record.get("points", 0)), int(record.get("reputation", 0)), int(record.get("rating", 50))]
+	_show_subpage("RIVALS", body, "BACK TO CAREER")
+
+func _ensure_rival_records() -> void:
+	for index in range(rival_names.size()):
+		var name := str(rival_names[index])
+		if not rival_records.has(name):
+			rival_records[name] = {"wins": 0, "losses": 0, "points": 0, "reputation": 0, "rating": 50 + index * 3}
 
 func _show_subpage(page_title: String, body: String, back_caption: String) -> void:
 	menu_panel.hide()
@@ -698,7 +716,6 @@ func _start_race() -> void:
 		var event: Dictionary = _get_selected_event()
 		race_distance = float(event["distance"])
 		race_reward = int(event["reward"])
-		rival_target_speed = float(event["rival_speed"])
 		race_event_name = str(event["name"])
 	else:
 		race_distance = TRACK_LENGTH
@@ -716,9 +733,12 @@ func _start_race() -> void:
 	race_time = 0.0
 	throttle_down = false
 	if career_race:
-		rival_name = rival_names[(career_wins + career_losses) % rival_names.size()]
+		rival_name = str(rival_names[(career_wins + career_losses) % rival_names.size()])
+		var selected_record: Dictionary = rival_records.get(rival_name, {})
+		rival_target_speed = float(_get_selected_event()["rival_speed"]) + float(selected_record.get("rating", 50) - 50) * 0.22
 	else:
 		rival_name = quick_rival_name if quick_rival_name != "" else rival_names[randi_range(0, rival_names.size() - 1)]
+		rival_target_speed = 238.0
 	title_label.text = "GET READY"
 	status_label.text = "You vs %s  •  Take your position." % rival_name
 	_clear_section()
@@ -774,6 +794,7 @@ func _finish_race() -> void:
 	var won := player_distance >= race_distance and player_distance >= rival_distance
 	race_finished = true
 	if was_career_race:
+		_update_rival_career_results(won)
 		if won:
 			career_wins += 1
 			career_cash += race_reward
@@ -797,6 +818,31 @@ func _finish_race() -> void:
 			title_label.text = "RACE LOST"
 			status_label.text = "%s got there first. Run it back." % rival_name
 
+func _update_rival_career_results(player_won: bool) -> void:
+	_ensure_rival_records()
+	var opponent: Dictionary = rival_records.get(rival_name, {})
+	if player_won:
+		opponent["losses"] = int(opponent.get("losses", 0)) + 1
+	else:
+		opponent["wins"] = int(opponent.get("wins", 0)) + 1
+		opponent["points"] = int(opponent.get("points", 0)) + 10
+		opponent["reputation"] = int(opponent.get("reputation", 0)) + 5
+		opponent["rating"] = mini(100, int(opponent.get("rating", 50)) + 1)
+	rival_records[rival_name] = opponent
+	for name in rival_names:
+		if str(name) == rival_name:
+			continue
+		var record: Dictionary = rival_records.get(name, {})
+		if randf() < 0.55:
+			record["wins"] = int(record.get("wins", 0)) + 1
+			record["points"] = int(record.get("points", 0)) + 10
+			record["reputation"] = int(record.get("reputation", 0)) + 4
+			if randf() < 0.25:
+				record["rating"] = mini(100, int(record.get("rating", 50)) + 1)
+		else:
+			record["losses"] = int(record.get("losses", 0)) + 1
+		rival_records[str(name)] = record
+
 func _load_career_save() -> void:
 	var save := ConfigFile.new()
 	var error := save.load("user://career_save.cfg")
@@ -806,6 +852,7 @@ func _load_career_save() -> void:
 	career_losses = int(save.get_value("career", "losses", 0))
 	career_cash = int(save.get_value("career", "cash", 0))
 	career_reputation = int(save.get_value("career", "reputation", 0))
+	rival_records = save.get_value("career", "rival_records", {})
 	selected_event_id = str(save.get_value("career", "selected_event_id", "quarter_mile"))
 	race_event_name = str(_get_selected_event()["name"])
 	last_result = str(save.get_value("career", "last_result", "No races completed"))
@@ -831,6 +878,7 @@ func _save_career() -> void:
 	save.set_value("career", "losses", career_losses)
 	save.set_value("career", "cash", career_cash)
 	save.set_value("career", "reputation", career_reputation)
+	save.set_value("career", "rival_records", rival_records)
 	save.set_value("career", "selected_event_id", selected_event_id)
 	save.set_value("career", "last_result", last_result)
 	save.set_value("garage", "owned_cars", owned_cars)
