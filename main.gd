@@ -113,6 +113,12 @@ var child_support_paid_total := 0
 var household_paid_total := 0
 var missed_payment_months := 0
 var last_finance_message := ""
+var career_inbox: Array = []
+var career_invites_sent: Array = []
+var defeated_challenge_rivals: Array = []
+var rival_challenge_active := false
+var rival_challenge_name := ""
+var last_career_notification := ""
 var owned_cars: Array = ["Street Compact"]
 var active_car := "Street Compact"
 var car_upgrades: Dictionary = {}
@@ -368,6 +374,16 @@ func _show_career_dashboard() -> void:
 	_add_section_label("Wins: %d     Losses: %d" % [career_wins, career_losses])
 	_add_section_label("Cash: $%s     Reputation: %d" % [str(career_cash), career_reputation])
 	_add_section_label("LAST RESULT  |  " + last_result)
+	_add_section_label("CAREER TIER  |  %s" % _career_tier_name())
+	_add_section_label("NEXT UNLOCK  |  %s" % _next_career_tier_text())
+	var inbox_button := _make_button("CAREER INBOX  |  %d NEW" % career_inbox.size(), Color("#2675a8"))
+	inbox_button.add_theme_color_override("font_color", Color.WHITE)
+	inbox_button.pressed.connect(_show_career_inbox)
+	section_panel.add_child(inbox_button)
+	var challenge_button := _make_button("RIVAL CHALLENGES", Color("#34485d"))
+	challenge_button.add_theme_color_override("font_color", Color.WHITE)
+	challenge_button.pressed.connect(_show_rival_challenges)
+	section_panel.add_child(challenge_button)
 	var story_button := _make_button("STORY & MISSIONS", Color("#34485d"))
 	story_button.add_theme_color_override("font_color", Color.WHITE)
 	story_button.pressed.connect(_show_story_missions)
@@ -702,6 +718,124 @@ func _select_car(car_name: String) -> void:
 		_save_career()
 		_show_garage()
 
+func _career_tier_name() -> String:
+	if career_reputation >= 800:
+		return "SUPERSTAR"
+	if career_reputation >= 500:
+		return "INTERNATIONAL"
+	if career_reputation >= 300:
+		return "NATIONAL"
+	if career_reputation >= 150:
+		return "PROFESSIONAL"
+	if career_reputation >= 75:
+		return "AMATEUR"
+	if career_reputation >= 30:
+		return "LOCAL CHAMPION"
+	return "UNDERGROUND RACER"
+
+func _next_career_tier_text() -> String:
+	var thresholds := [30, 75, 150, 300, 500, 800]
+	var names := ["LOCAL CHAMPION", "AMATEUR", "PROFESSIONAL", "NATIONAL", "INTERNATIONAL", "SUPERSTAR"]
+	for index in range(thresholds.size()):
+		if career_reputation < int(thresholds[index]):
+			return "%s at %d reputation (%d to go)" % [names[index], int(thresholds[index]), int(thresholds[index]) - career_reputation]
+	return "MAXIMUM TIER REACHED"
+
+func _event_min_reputation(event_id: String) -> int:
+	match event_id:
+		"eighth_mile", "quarter_mile":
+			return 0
+		"pro_quarter":
+			return 50
+		"half_mile":
+			return 100
+		"top_speed":
+			return 200
+		"mile_run":
+			return 350
+	return 0
+
+func _event_entry_fee(event_id: String) -> int:
+	match event_id:
+		"eighth_mile", "quarter_mile":
+			return 0
+		"pro_quarter":
+			return 100
+		"half_mile":
+			return 200
+		"top_speed":
+			return 350
+		"mile_run":
+			return 500
+	return 0
+
+func _add_career_notification(message: String) -> void:
+	career_inbox.push_front({"message": message, "date": Time.get_datetime_string_from_system()})
+	while career_inbox.size() > 30:
+		career_inbox.pop_back()
+	last_career_notification = message
+	_save_career()
+
+func _check_career_tier_unlocks() -> void:
+	var tiers := [
+		{"rep": 30, "name": "LOCAL CHAMPION"},
+		{"rep": 75, "name": "AMATEUR"},
+		{"rep": 150, "name": "PROFESSIONAL"},
+		{"rep": 300, "name": "NATIONAL"},
+		{"rep": 500, "name": "INTERNATIONAL"},
+		{"rep": 800, "name": "SUPERSTAR"}
+	]
+	for tier in tiers:
+		var threshold := int(tier["rep"])
+		if career_reputation >= threshold and not career_invites_sent.has(threshold):
+			career_invites_sent.append(threshold)
+			_add_career_notification("CAREER UNLOCK: %s division invitation received." % str(tier["name"]))
+
+func _show_career_inbox() -> void:
+	var body := "CAREER INBOX\n\n"
+	if career_inbox.is_empty():
+		body += "No messages yet. Invitations and career updates will appear here."
+	else:
+		for index in range(career_inbox.size()):
+			var item: Dictionary = career_inbox[index]
+			body += "%d. %s\n%s\n\n" % [index + 1, str(item.get("message", "")), str(item.get("date", ""))]
+	_show_subpage("CAREER INBOX", body, "BACK TO CAREER")
+
+func _show_rival_challenges() -> void:
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	title_label.text = "RIVAL CHALLENGES"
+	status_label.text = "Settle the score on the strip."
+	_clear_section()
+	_add_section_label("Challenge a rival over your selected event. A win pays a bonus and reputation. Each rival can be defeated for this challenge once.")
+	_add_section_label("SELECTED EVENT  |  %s" % race_event_name)
+	for name in rival_names:
+		if defeated_challenge_rivals.has(name):
+			_add_section_label("%s  |  CHALLENGE WON" % name)
+			continue
+		var challenge_button := _make_button("CHALLENGE  |  " + str(name), Color("#b34d43"))
+		challenge_button.add_theme_color_override("font_color", Color.WHITE)
+		challenge_button.pressed.connect(func():
+			if career_reputation < _event_min_reputation(selected_event_id):
+				_add_career_notification("Challenge unavailable: build more reputation to enter this event.")
+				_show_rival_challenges()
+				return
+			if career_cash < _event_entry_fee(selected_event_id):
+				_add_career_notification("Challenge unavailable: not enough cash for the event entry fee.")
+				_show_rival_challenges()
+				return
+			rival_challenge_active = true
+			rival_challenge_name = str(name)
+			career_race = true
+			_start_race()
+		)
+		section_panel.add_child(challenge_button)
+	var back_button := _make_button("BACK TO CAREER", Color("#263545"))
+	back_button.add_theme_color_override("font_color", Color.WHITE)
+	back_button.pressed.connect(_show_career_dashboard)
+	section_panel.add_child(back_button)
+
 func _event_catalog() -> Array:
 	return [
 		{"id": "eighth_mile", "name": "Eighth-Mile Dash", "distance": 201.0, "reward": 300, "rival_speed": 232.0, "description": "A short explosive sprint. Launch reaction and acceleration decide the winner."},
@@ -732,10 +866,19 @@ func _show_event_selection() -> void:
 		var reward := int(event["reward"])
 		_add_section_label("%s  •  %d m  •  Prize $%s" % [event_name, distance, str(reward)])
 		_add_section_label(str(event["description"]))
-		var caption := "SELECTED  •  " + event_name if event_id == selected_event_id else "SELECT  •  " + event_name
+		var required_rep := _event_min_reputation(event_id)
+		var entry_fee := _event_entry_fee(event_id)
+		var unlocked := career_reputation >= required_rep
+		_add_section_label("ENTRY FEE  |  $%s  •  REQUIRED REP  |  %d" % [str(entry_fee), required_rep])
+		if not unlocked:
+			_add_section_label("LOCKED  |  Need %d more reputation" % (required_rep - career_reputation))
+		var caption := ("SELECTED  •  " + event_name) if event_id == selected_event_id else ("SELECT  •  " + event_name)
+		if not unlocked:
+			caption = "LOCKED  •  " + event_name
 		var event_button := _make_button(caption, Color("#f5a623") if event_id == selected_event_id else Color("#34485d"))
 		if event_id != selected_event_id:
 			event_button.add_theme_color_override("font_color", Color.WHITE)
+		event_button.disabled = not unlocked
 		event_button.pressed.connect(_select_event.bind(event_id))
 		section_panel.add_child(event_button)
 	var back_button := _make_button("BACK TO CAREER", Color("#263545"))
@@ -746,6 +889,8 @@ func _show_event_selection() -> void:
 func _select_event(event_id: String) -> void:
 	for event in _event_catalog():
 		if str(event["id"]) == event_id:
+			if career_reputation < _event_min_reputation(event_id):
+				return
 			selected_event_id = event_id
 			race_event_name = str(event["name"])
 			_save_career()
@@ -1368,6 +1513,18 @@ func _start_race() -> void:
 	race_panel.hide()
 	if career_race:
 		var event: Dictionary = _get_selected_event()
+		var entry_fee := _event_entry_fee(selected_event_id)
+		if career_reputation < _event_min_reputation(selected_event_id):
+			career_race = false
+			status_label.text = "This event is locked. Build more reputation first."
+			_show_event_selection()
+			return
+		if career_cash < entry_fee:
+			career_race = false
+			status_label.text = "You need $%s for this event's entry fee." % str(entry_fee)
+			_show_event_selection()
+			return
+		career_cash -= entry_fee
 		race_distance = float(event["distance"])
 		race_reward = int(event["reward"])
 		race_event_name = str(event["name"])
@@ -1396,7 +1553,7 @@ func _start_race() -> void:
 	_roll_track_condition()
 	throttle_down = false
 	if career_race:
-		rival_name = str(rival_names[(career_wins + career_losses) % rival_names.size()])
+		rival_name = rival_challenge_name if rival_challenge_active else str(rival_names[(career_wins + career_losses) % rival_names.size()])
 		var selected_record: Dictionary = rival_records.get(rival_name, {})
 		var rival_car := str(selected_record.get("car", "Street Compact"))
 		var rival_upgrades := int(selected_record.get("upgrade_level", 0))
@@ -1538,6 +1695,7 @@ func _finish_race() -> void:
 			career_cash += race_reward
 			career_reputation += 10
 			last_result = "Victory vs " + rival_name
+			_check_career_tier_unlocks()
 			_update_story_progress()
 		else:
 			career_losses += 1
@@ -1545,6 +1703,17 @@ func _finish_race() -> void:
 			last_result = "Defeat vs " + rival_name
 		_update_jasper_job_progress()
 		_advance_career_month()
+		if rival_challenge_active:
+			if won:
+				var challenge_bonus := 750 + career_reputation * 2
+				career_cash += challenge_bonus
+				career_reputation += 8
+				defeated_challenge_rivals.append(rival_challenge_name)
+				_add_career_notification("RIVAL DEFEATED: %s. Bonus $%s and +8 reputation." % [rival_challenge_name, str(challenge_bonus)])
+			else:
+				_add_career_notification("RIVAL CHALLENGE LOST: %s wants another shot someday." % rival_challenge_name)
+			rival_challenge_active = false
+			rival_challenge_name = ""
 		career_race = false
 		_check_achievements(new_personal_best)
 		_save_career()
@@ -1690,6 +1859,9 @@ func _load_career_save() -> void:
 	jasper_job_progress = int(save.get_value("career", "jasper_job_progress", 0))
 	completed_jasper_jobs = save.get_value("career", "completed_jasper_jobs", [])
 	last_jasper_job_message = str(save.get_value("career", "last_jasper_job_message", ""))
+	career_inbox = save.get_value("career", "career_inbox", [])
+	career_invites_sent = save.get_value("career", "career_invites_sent", [])
+	defeated_challenge_rivals = save.get_value("career", "defeated_challenge_rivals", [])
 	career_month = int(save.get_value("career", "career_month", 1))
 	races_this_month = int(save.get_value("career", "races_this_month", 0))
 	child_support_due = int(save.get_value("career", "child_support_due", 0))
@@ -1749,6 +1921,9 @@ func _save_career() -> void:
 	save.set_value("career", "jasper_job_progress", jasper_job_progress)
 	save.set_value("career", "completed_jasper_jobs", completed_jasper_jobs)
 	save.set_value("career", "last_jasper_job_message", last_jasper_job_message)
+	save.set_value("career", "career_inbox", career_inbox)
+	save.set_value("career", "career_invites_sent", career_invites_sent)
+	save.set_value("career", "defeated_challenge_rivals", defeated_challenge_rivals)
 	save.set_value("career", "career_month", career_month)
 	save.set_value("career", "races_this_month", races_this_month)
 	save.set_value("career", "child_support_due", child_support_due)
