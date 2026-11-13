@@ -1661,6 +1661,155 @@ func _show_international_team_standings() -> void:
 			body += "%d. %s — %d points\n" % [index + 1,str(rows[index]["name"]),int(rows[index]["points"])]
 	_show_subpage("WORLD TEAM CHAMPIONSHIP",body,"BACK TO CAREER")
 
+
+func _superstar_event_catalog() -> Array:
+	return [
+		{"id":"star_402","name":"Legends Quarter-Mile Crown","distance":402.0,"reward":30000,"rival_speed":360.0,"entry_fee":15000,"points":18},
+		{"id":"star_804","name":"Apex Half-Mile Masters","distance":804.0,"reward":38000,"rival_speed":366.0,"entry_fee":18000,"points":18},
+		{"id":"star_1000","name":"Global Velocity Record","distance":1000.0,"reward":48000,"rival_speed":372.0,"entry_fee":22000,"points":20},
+		{"id":"star_1609","name":"Legends Mile Endurance","distance":1609.0,"reward":60000,"rival_speed":378.0,"entry_fee":26000,"points":20},
+		{"id":"star_201","name":"Superstar Sprint Shootout","distance":201.0,"reward":42000,"rival_speed":374.0,"entry_fee":20000,"points":18},
+		{"id":"star_final","name":"World Legends Grand Final","distance":1609.0,"reward":100000,"rival_speed":390.0,"entry_fee":40000,"points":30}
+	]
+
+func _get_superstar_event() -> Dictionary:
+	for event in _superstar_event_catalog():
+		if str(event["id"]) == selected_superstar_event_id:
+			return event
+	return _superstar_event_catalog()[0]
+
+func _ensure_superstar_rivals() -> void:
+	for index in range(superstar_rival_names.size()):
+		var name := str(superstar_rival_names[index])
+		if not superstar_rival_records.has(name):
+			superstar_rival_records[name] = {"wins":0,"losses":0,"rating":96 + index,"car":"Muscle V8","upgrade_level":12 + index}
+
+func _show_superstar_pathway() -> void:
+	var body := "SUPERSTAR WORLD LEGENDS PATHWAY\n\n"
+	body += "The world title has made you a global icon. The Legends Racing Council has invited you to face five decorated drivers.\n\n"
+	body += "International title  |  %s\n" % ("EARNED" if superstar_pathway_unlocked else "LOCKED")
+	body += "Career wins  |  %d / 60\n" % mini(career_wins,60)
+	body += "Driver level  |  %d / 20\n" % mini(_driver_level(),20)
+	body += "Reputation  |  %d / 750\n" % mini(career_reputation,750)
+	var ready := superstar_pathway_unlocked and career_wins >= 60 and _driver_level() >= 20 and career_reputation >= 750
+	body += "\nSTATUS  |  %s" % ("QUALIFIED" if ready else "COMPLETE THE REMAINING REQUIREMENTS")
+	_show_subpage("SUPERSTAR PATHWAY",body,"BACK TO CAREER")
+	if ready:
+		var register := _make_button("REGISTER FOR LEGENDS SERIES",Color("#d6a52d"))
+		register.pressed.connect(_begin_superstar_story)
+		section_panel.add_child(register)
+
+func _begin_superstar_story() -> void:
+	if not (superstar_pathway_unlocked and career_wins >= 60 and _driver_level() >= 20 and career_reputation >= 750):
+		_show_superstar_pathway()
+		return
+	story_stage = maxi(story_stage,19)
+	last_story_message = "Legends Racing Council: Your invitation is official. Defend your place among the greats."
+	_save_career()
+	_show_story_missions()
+
+func _show_superstar_championship() -> void:
+	if not (superstar_pathway_unlocked and career_wins >= 60 and _driver_level() >= 20 and career_reputation >= 750):
+		_show_superstar_pathway()
+		return
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	title_label.text = "SUPERSTAR CHAMPIONSHIP"
+	status_label.text = "LEGENDS RACING COUNCIL  |  SEASON %d" % superstar_season_number
+	_clear_section()
+	_add_section_label("GLOBAL LEGENDS LICENCE  |  ACTIVE")
+	_add_section_label("PROGRESS  |  %d / 6 EVENTS" % superstar_events_completed.size())
+	for event in _superstar_event_catalog():
+		var event_id := str(event["id"])
+		_add_section_label("%s  |  %d m  |  Prize $%s  |  Entry $%s" % [str(event["name"]),int(event["distance"]),str(event["reward"]),str(event["entry_fee"])])
+		var done := superstar_events_completed.has(event_id)
+		var race_button := _make_button(("COMPLETED  |  " if done else "ENTER  |  ")+str(event["name"]),Color("#34485d") if done else Color("#d6a52d"))
+		race_button.disabled = done
+		race_button.pressed.connect(_enter_superstar_event.bind(event_id))
+		section_panel.add_child(race_button)
+	var standings := _make_button("LEGENDS STANDINGS",Color("#2675a8"))
+	standings.add_theme_color_override("font_color",Color.WHITE)
+	standings.pressed.connect(_show_superstar_standings)
+	section_panel.add_child(standings)
+	var hall := _make_button("GLOBAL HALL OF FAME",Color("#34485d"))
+	hall.add_theme_color_override("font_color",Color.WHITE)
+	hall.pressed.connect(_show_global_hall_of_fame)
+	section_panel.add_child(hall)
+	var back := _make_button("BACK TO CAREER",Color("#263545"))
+	back.add_theme_color_override("font_color",Color.WHITE)
+	back.pressed.connect(_show_career_dashboard)
+	section_panel.add_child(back)
+
+func _enter_superstar_event(event_id: String) -> void:
+	if superstar_events_completed.has(event_id):
+		return
+	for event in _superstar_event_catalog():
+		if str(event["id"]) == event_id:
+			selected_superstar_event_id = event_id
+			superstar_championship_active = true
+			career_race = true
+			_start_race()
+			return
+
+func _update_superstar_season(player_won: bool) -> void:
+	if superstar_events_completed.has(selected_superstar_event_id):
+		superstar_season_message = "LEGENDS EVENT ALREADY COMPLETED"
+		return
+	var event := _get_superstar_event()
+	superstar_events_completed.append(selected_superstar_event_id)
+	var points := int(event["points"]) if player_won else 6
+	superstar_season_points["YOU"] = int(superstar_season_points.get("YOU",0)) + points
+	superstar_season_message = "LEGENDS CHAMPIONSHIP POINTS  |  +%d" % points
+	for name in superstar_rival_names:
+		superstar_season_points[name] = int(superstar_season_points.get(name,0)) + (18 if randf() < 0.65 else 7)
+	if superstar_events_completed.size() == _superstar_event_catalog().size():
+		var rows: Array = []
+		for driver in ["YOU"] + superstar_rival_names:
+			rows.append({"name":driver,"points":int(superstar_season_points.get(driver,0))})
+		rows.sort_custom(func(a: Dictionary,b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
+		last_superstar_champion = str(rows[0]["name"])
+		last_superstar_points = superstar_season_points.duplicate(true)
+		last_superstar_season_number = superstar_season_number
+		if last_superstar_champion == "YOU":
+			career_cash += 200000
+			lifetime_earnings += 200000
+			career_reputation += 250
+			superstar_titles += 1
+			story_stage = 20
+			last_story_message = "CHAPTER 6 COMPLETE: You became a global drag racing legend."
+			superstar_season_message = "GLOBAL LEGENDS CHAMPION! $200,000 + 250 REP."
+			_add_career_notification("GLOBAL LEGENDS CHAMPION: You reached the summit.")
+		else:
+			superstar_season_message = "LEGENDS SEASON CHAMPION: %s" % last_superstar_champion
+		superstar_season_number += 1
+		superstar_season_points = {}
+		superstar_events_completed = []
+	_save_career()
+
+func _show_superstar_standings() -> void:
+	var display: Dictionary = last_superstar_points if superstar_events_completed.is_empty() and last_superstar_season_number > 0 else superstar_season_points
+	var rows: Array = [{"name":"YOU","points":int(display.get("YOU",0))}]
+	for name in superstar_rival_names:
+		rows.append({"name":name,"points":int(display.get(name,0))})
+	rows.sort_custom(func(a: Dictionary,b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
+	var body := "GLOBAL LEGENDS  |  SEASON %d\n\n" % (last_superstar_season_number if superstar_events_completed.is_empty() and last_superstar_season_number > 0 else superstar_season_number)
+	for index in range(rows.size()):
+		body += "%d. %s — %d points\n" % [index+1,str(rows[index]["name"]),int(rows[index]["points"])]
+	_show_subpage("LEGENDS STANDINGS",body,"BACK TO CAREER")
+
+func _show_global_hall_of_fame() -> void:
+	var body := "GLOBAL HALL OF FAME\n\n"
+	body += "Superstar titles  |  %d\n" % superstar_titles
+	body += "Career wins / losses  |  %d / %d\n" % [career_wins,career_losses]
+	body += "Best win streak  |  %d\n" % best_win_streak
+	body += "Lifetime prize earnings  |  $%s\n" % str(lifetime_earnings)
+	body += "Driver level  |  %d\n" % _driver_level()
+	body += "Reputation  |  %d\n" % career_reputation
+	body += "International title pathway  |  %s\n" % ("UNLOCKED" if international_pathway_unlocked else "LOCKED")
+	body += "Legends invitation  |  %s" % ("UNLOCKED" if superstar_pathway_unlocked else "LOCKED")
+	_show_subpage("GLOBAL HALL OF FAME",body,"BACK TO CAREER")
+
 func _show_professional_standings() -> void:
 	var display_points: Dictionary = professional_season_points
 	var heading := "CURRENT PROFESSIONAL SEASON"
