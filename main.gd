@@ -66,6 +66,9 @@ var career_wins := 0
 var career_losses := 0
 var career_cash := 0
 var career_reputation := 0
+var career_xp := 0
+var last_xp_earned := 0
+var last_level_up := false
 var last_result := "No races completed"
 var owned_cars: Array = ["Street Compact"]
 var active_car := "Street Compact"
@@ -290,6 +293,7 @@ func _show_career_dashboard() -> void:
 	choose_event_button.add_theme_color_override("font_color", Color.WHITE)
 	choose_event_button.pressed.connect(_show_event_selection)
 	section_panel.add_child(choose_event_button)
+	_add_section_label("DRIVER LEVEL  %d  •  XP %d / %d" % [_driver_level(), career_xp % 250, 250])
 	_add_section_label("CAREER RECORD")
 	_add_section_label("Wins: %d     Losses: %d" % [career_wins, career_losses])
 	_add_section_label("Cash: $%s     Reputation: %d" % [str(career_cash), career_reputation])
@@ -822,7 +826,13 @@ func _finish_race() -> void:
 	if new_personal_best:
 		personal_bests[record_key] = race_time
 	race_finished = true
+	last_xp_earned = 0
+	last_level_up = false
 	if was_career_race:
+		var old_level := _driver_level()
+		last_xp_earned = 100 if won else 50
+		career_xp += last_xp_earned
+		last_level_up = _driver_level() > old_level
 		_update_rival_career_results(won)
 		if won:
 			career_wins += 1
@@ -850,6 +860,11 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 	_add_section_label("YOUR TIME  |  %.2f seconds" % race_time)
 	_add_section_label("DISTANCE  |  %d metres" % int(race_distance))
 	_add_section_label("PRIZE MONEY  |  $%s" % str(race_reward if was_career_race and won else 0))
+	if was_career_race:
+		_add_section_label("DRIVER XP  |  +%d" % last_xp_earned)
+		_add_section_label("DRIVER LEVEL  |  %d" % _driver_level())
+		if last_level_up:
+			_add_section_label("LEVEL UP!  NEW DRIVER LEVEL %d" % _driver_level())
 	if new_personal_best:
 		_add_section_label("NEW PERSONAL BEST!")
 	else:
@@ -917,6 +932,10 @@ func _record_rival_victory(record: Dictionary, prize: int) -> void:
 		rating = mini(100, rating + 7)
 	record["rating"] = rating
 
+
+func _driver_level() -> int:
+	return 1 + int(floor(float(career_xp) / 250.0))
+
 func _load_career_save() -> void:
 	var save := ConfigFile.new()
 	var error := save.load("user://career_save.cfg")
@@ -926,6 +945,7 @@ func _load_career_save() -> void:
 	career_losses = int(save.get_value("career", "losses", 0))
 	career_cash = int(save.get_value("career", "cash", 0))
 	career_reputation = int(save.get_value("career", "reputation", 0))
+	career_xp = int(save.get_value("career", "xp", 0))
 	rival_records = save.get_value("career", "rival_records", {})
 	personal_bests = save.get_value("career", "personal_bests", {})
 	selected_event_id = str(save.get_value("career", "selected_event_id", "quarter_mile"))
@@ -953,6 +973,7 @@ func _save_career() -> void:
 	save.set_value("career", "losses", career_losses)
 	save.set_value("career", "cash", career_cash)
 	save.set_value("career", "reputation", career_reputation)
+	save.set_value("career", "xp", career_xp)
 	save.set_value("career", "rival_records", rival_records)
 	save.set_value("career", "personal_bests", personal_bests)
 	save.set_value("career", "selected_event_id", selected_event_id)
