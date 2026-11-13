@@ -369,7 +369,7 @@ func _finish_race() -> void:
 	throttle_down = false
 	var was_career_race := career_race
 	var won := player_distance >= TRACK_LENGTH and player_distance >= rival_distance
-	trace_finished = true
+	race_finished = true
 	if was_career_race:
 		if won:
 			career_wins += 1
