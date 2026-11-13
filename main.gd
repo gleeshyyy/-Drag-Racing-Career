@@ -836,18 +836,44 @@ func _finish_race() -> void:
 		_save_career()
 	else:
 		_save_career()
+	_show_race_results(was_career_race, won, new_personal_best)
+
+func _show_race_results(was_career_race: bool, won: bool, new_personal_best: bool) -> void:
+	menu_panel.hide()
 	race_panel.hide()
-	if was_career_race:
-		_show_career_dashboard()
+	section_panel.show()
+	title_label.text = "RACE WON!" if won else "RACE LOST"
+	status_label.text = "You beat %s." % rival_name if won else "%s reached the finish first." % rival_name
+	_clear_section()
+	_add_section_label("RACE RESULTS  |  " + race_event_name.to_upper())
+	_add_section_label("OPPONENT  |  " + rival_name)
+	_add_section_label("YOUR TIME  |  %.2f seconds" % race_time)
+	_add_section_label("DISTANCE  |  %d metres" % int(race_distance))
+	_add_section_label("PRIZE MONEY  |  $%s" % str(race_reward if was_career_race and won else 0))
+	if new_personal_best:
+		_add_section_label("NEW PERSONAL BEST!")
 	else:
-		menu_panel.show()
-		section_panel.hide()
-		if won:
-			title_label.text = "RACE WON!"
-			status_label.text = "You beat %s in %.2f seconds.%s" % [rival_name, race_time, " NEW PERSONAL BEST!" if new_personal_best else ""]
-		else:
-			title_label.text = "RACE LOST"
-			status_label.text = "%s got there first. Run it back.%s" % [rival_name, " NEW PERSONAL BEST!" if new_personal_best else ""]
+		var best := float(personal_bests.get(selected_event_id if was_career_race else "quick_402", 0.0))
+		_add_section_label("PERSONAL BEST  |  %.2f seconds" % best if best > 0.0 else "PERSONAL BEST  |  No record yet")
+	if was_career_race:
+		var continue_button := _make_button("BACK TO CAREER", Color("#f5a623"))
+		continue_button.pressed.connect(_show_career_dashboard)
+		section_panel.add_child(continue_button)
+		var again_button := _make_button("RACE THIS EVENT AGAIN", Color("#2675a8"))
+		again_button.add_theme_color_override("font_color", Color.WHITE)
+		again_button.pressed.connect(func():
+			career_race = true
+			_start_race()
+		)
+		section_panel.add_child(again_button)
+	else:
+		var continue_button := _make_button("QUICK RACE", Color("#38a8e8"))
+		continue_button.pressed.connect(_show_quick_matchmaking)
+		section_panel.add_child(continue_button)
+		var menu_button := _make_button("MAIN MENU", Color("#263545"))
+		menu_button.add_theme_color_override("font_color", Color.WHITE)
+		menu_button.pressed.connect(_show_menu)
+		section_panel.add_child(menu_button)
 
 func _update_rival_career_results(player_won: bool) -> void:
 	_ensure_rival_records()
