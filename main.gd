@@ -29,6 +29,7 @@ var throttle_button: Button
 var shift_button: Button
 var race_panel: VBoxContainer
 var menu_panel: VBoxContainer
+var start_button: Button
 
 func _ready() -> void:
 	_build_interface()
@@ -93,9 +94,9 @@ func _build_interface() -> void:
 	menu_panel = VBoxContainer.new()
 	menu_panel.add_theme_constant_override("separation", 12)
 	root.add_child(menu_panel)
-	var start := _make_button("START FIRST RACE", Color("#f5a623"))
-	start.pressed.connect(_start_race)
-	menu_panel.add_child(start)
+	start_button = _make_button("START FIRST RACE", Color("#f5a623"))
+	start_button.pressed.connect(_start_race)
+	menu_panel.add_child(start_button)
 	var note := Label.new()
 	note.text = "QUARTER-MILE SPRINT  •  402 METRES"
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -240,15 +241,11 @@ func _finish_race() -> void:
 	if won:
 		title_label.text = "RACE WON!"
 		status_label.text = "You beat the rival in %.2f seconds." % race_time
-		var again := _make_button("RACE AGAIN", Color("#f5a623"))
-		again.pressed.connect(_start_race)
-		menu_panel.add_child(again)
+		start_button.text = "RACE AGAIN"
 	else:
 		title_label.text = "RACE LOST"
 		status_label.text = "The rival got there first. Run it back."
-		var again := _make_button("TRY AGAIN", Color("#f5a623"))
-		again.pressed.connect(_start_race)
-		menu_panel.add_child(again)
+		start_button.text = "TRY AGAIN"
 
 func _make_button(caption: String, fill: Color) -> Button:
 	var button := Button.new()
