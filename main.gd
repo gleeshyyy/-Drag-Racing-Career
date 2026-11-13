@@ -538,7 +538,7 @@ func _show_career_dashboard() -> void:
 	_refresh_team_offers()
 	var event: Dictionary = _get_selected_event()
 	_add_section_label("SEASON %d  /  %s" % [season_number, _career_tier_name().to_upper()])
-	var hero := _make_button("ENTER NEXT RACE\n%s  •  %d M  •  PRIZE $%s\nTAP TO ENTER THE STRIP  →" % [race_event_name.to_upper(), int(event["distance"]), str(event["reward"])], Color("#f5a623"))
+	var hero := _make_hero_button("ENTER NEXT RACE\n%s  •  %d M  •  PRIZE $%s\nTAP TO ENTER THE STRIP  →" % [race_event_name.to_upper(), int(event["distance"]), str(event["reward"])])
 	hero.custom_minimum_size = Vector2(0, 142)
 	hero.add_theme_font_size_override("font_size", 19)
 	hero.pressed.connect(func():
@@ -3562,20 +3562,60 @@ func _format_number(value: int) -> String:
 
 func _dashboard_card_style(accent: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#101720")
+	style.bg_color = Color("#121c2b")
 	style.border_width_left = 1
-	style.border_width_top = 2
+	style.border_width_top = 5
 	style.border_width_right = 1
 	style.border_width_bottom = 1
-	style.border_color = accent.darkened(0.18)
-	style.corner_radius_top_left = 10
-	style.corner_radius_top_right = 10
-	style.corner_radius_bottom_left = 10
-	style.corner_radius_bottom_right = 10
-	style.shadow_color = Color(accent.r, accent.g, accent.b, 0.18)
-	style.shadow_size = 5
-	style.set_content_margin_all(10)
+	style.border_color = Color("#26384b")
+	style.border_color = accent
+	style.corner_radius_top_left = 9
+	style.corner_radius_top_right = 9
+	style.corner_radius_bottom_left = 9
+	style.corner_radius_bottom_right = 9
+	style.shadow_color = Color(accent.r, accent.g, accent.b, 0.30)
+	style.shadow_size = 8
+	style.set_content_margin_all(11)
 	return style
+
+func _make_hero_button(caption: String) -> Button:
+	var button := Button.new()
+	button.text = caption
+	button.custom_minimum_size = Vector2(0, 150)
+	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
+	button.add_theme_font_size_override("font_size", 20)
+	button.add_theme_color_override("font_color", Color("#101720"))
+	button.add_theme_color_override("font_hover_color", Color("#090d14"))
+	button.add_theme_color_override("font_pressed_color", Color("#090d14"))
+	button.add_theme_constant_override("outline_size", 1)
+	button.add_theme_color_override("font_outline_color", Color("#ffd77a"))
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = Color("#f5a623")
+	normal.border_width_left = 2
+	normal.border_width_top = 5
+	normal.border_width_right = 2
+	normal.border_width_bottom = 2
+	normal.border_color = Color("#ffd36a")
+	normal.corner_radius_top_left = 13
+	normal.corner_radius_top_right = 13
+	normal.corner_radius_bottom_left = 13
+	normal.corner_radius_bottom_right = 13
+	normal.shadow_color = Color(0.96, 0.65, 0.12, 0.48)
+	normal.shadow_size = 14
+	normal.set_content_margin_all(15)
+	button.add_theme_stylebox_override("normal", normal)
+	var hover := normal.duplicate()
+	hover.bg_color = Color("#ffc04d")
+	hover.border_color = Color("#fff0bd")
+	hover.shadow_size = 19
+	button.add_theme_stylebox_override("hover", hover)
+	var pressed := normal.duplicate()
+	pressed.bg_color = Color("#d98a12")
+	pressed.shadow_size = 5
+	button.add_theme_stylebox_override("pressed", pressed)
+	button.pressed.connect(_play_ui_click)
+	return button
 
 func _make_dashboard_stat(caption: String, value: String, detail: String, accent: Color) -> PanelContainer:
 	var card := PanelContainer.new()
@@ -3604,28 +3644,32 @@ func _make_dashboard_stat(caption: String, value: String, detail: String, accent
 
 func _make_feature_card(caption: String, detail: String, accent: Color, callback: Callable) -> Button:
 	var button := Button.new()
-	button.text = caption + "\n" + detail
-	button.custom_minimum_size = Vector2(0, 104)
+	button.text = "◆  " + caption + "\n" + detail
+	button.custom_minimum_size = Vector2(0, 112)
 	button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	button.alignment = HORIZONTAL_ALIGNMENT_CENTER
-	button.add_theme_font_size_override("font_size", 13)
-	button.add_theme_color_override("font_color", Color("#f2f6fa"))
-	button.add_theme_color_override("font_hover_color", Color.WHITE)
-	button.add_theme_constant_override("outline_size", 0)
+	button.add_theme_font_size_override("font_size", 15)
+	button.add_theme_color_override("font_color", Color("#ffffff"))
+	button.add_theme_color_override("font_hover_color", Color("#ffffff"))
+	button.add_theme_color_override("font_pressed_color", Color("#ffffff"))
+	button.add_theme_constant_override("outline_size", 1)
+	button.add_theme_color_override("font_outline_color", Color("#080d14"))
 	var normal := _dashboard_card_style(accent)
-	normal.set_content_margin_all(9)
+	normal.bg_color = Color("#1b2838")
+	normal.set_content_margin_all(12)
 	button.add_theme_stylebox_override("normal", normal)
 	var hover := normal.duplicate()
-	hover.bg_color = Color("#18232d")
-	hover.border_color = accent
-	hover.shadow_color = Color(accent.r, accent.g, accent.b, 0.42)
-	hover.shadow_size = 8
+	hover.bg_color = Color("#26394d")
+	hover.border_color = accent.lightened(0.15)
+	hover.shadow_color = Color(accent.r, accent.g, accent.b, 0.55)
+	hover.shadow_size = 11
 	button.add_theme_stylebox_override("hover", hover)
 	var pressed := hover.duplicate()
-	pressed.bg_color = Color("#202e39")
+	pressed.bg_color = Color("#31475c")
+	pressed.shadow_size = 4
 	button.add_theme_stylebox_override("pressed", pressed)
 	var disabled := normal.duplicate()
-	disabled.bg_color = Color("#0d1117")
+	disabled.bg_color = Color("#101720")
 	disabled.border_color = Color("#303b46")
 	disabled.shadow_size = 0
 	button.add_theme_stylebox_override("disabled", disabled)
@@ -3731,23 +3775,20 @@ func _progress_style(fill: String) -> StyleBoxFlat:
 
 func _panel_style(fill: String) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	var panel_tint := Color("#0d1117")
 	var source := Color(fill)
-	if source.get_luminance() > 0.22:
-		panel_tint = panel_tint.lerp(source, 0.045)
-	style.bg_color = Color(panel_tint.r, panel_tint.g, panel_tint.b, 0.96)
-	style.border_width_left = 2
-	style.border_width_top = 2
-	style.border_width_right = 2
-	style.border_width_bottom = 2
-	style.border_color = Color("#007b86")
-	style.shadow_color = Color(0.0, 0.94, 1.0, 0.13)
-	style.shadow_size = 6
+	style.bg_color = Color("#1b2838") if source.get_luminance() > 0.20 else Color("#121c2b")
+	style.border_width_left = 1
+	style.border_width_top = 4
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.border_color = Color("#00f0ff")
+	style.shadow_color = Color(0.0, 0.94, 1.0, 0.24)
+	style.shadow_size = 9
 	style.set_content_margin_all(14)
-	style.corner_radius_top_left = 12
-	style.corner_radius_top_right = 12
-	style.corner_radius_bottom_left = 12
-	style.corner_radius_bottom_right = 12
+	style.corner_radius_top_left = 10
+	style.corner_radius_top_right = 10
+	style.corner_radius_bottom_left = 10
+	style.corner_radius_bottom_right = 10
 	return style
 
 func _small_label(caption: String) -> Label:
