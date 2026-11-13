@@ -3562,20 +3562,20 @@ func _format_number(value: int) -> String:
 
 func _dashboard_card_style(accent: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("#121c2b")
+	style.bg_color = Color("#172233")
 	style.border_width_left = 1
-	style.border_width_top = 5
+	style.border_width_top = 7
 	style.border_width_right = 1
 	style.border_width_bottom = 1
-	style.border_color = Color("#26384b")
+	style.border_color = Color("#30445b")
 	style.border_color = accent
-	style.corner_radius_top_left = 9
-	style.corner_radius_top_right = 9
-	style.corner_radius_bottom_left = 9
-	style.corner_radius_bottom_right = 9
-	style.shadow_color = Color(accent.r, accent.g, accent.b, 0.30)
-	style.shadow_size = 8
-	style.set_content_margin_all(11)
+	style.corner_radius_top_left = 10
+	style.corner_radius_top_right = 10
+	style.corner_radius_bottom_left = 10
+	style.corner_radius_bottom_right = 10
+	style.shadow_color = Color(accent.r, accent.g, accent.b, 0.36)
+	style.shadow_size = 10
+	style.set_content_margin_all(12)
 	return style
 
 func _make_hero_button(caption: String) -> Button:
@@ -3620,25 +3620,34 @@ func _make_hero_button(caption: String) -> Button:
 func _make_dashboard_stat(caption: String, value: String, detail: String, accent: Color) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.custom_minimum_size = Vector2(0, 88)
-	card.add_theme_stylebox_override("panel", _dashboard_card_style(accent))
+	card.custom_minimum_size = Vector2(0, 108)
+	var card_style := _dashboard_card_style(accent)
+	card_style.bg_color = Color("#172233")
+	card_style.border_width_top = 7
+	card_style.border_width_left = 1
+	card_style.border_width_right = 1
+	card_style.border_width_bottom = 1
+	card_style.set_content_margin_all(12)
+	card.add_theme_stylebox_override("panel", card_style)
 	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 3)
+	content.add_theme_constant_override("separation", 2)
 	card.add_child(content)
-	var heading := Label.new()
-	heading.text = caption
-	heading.add_theme_font_size_override("font_size", 10)
-	heading.add_theme_color_override("font_color", accent)
-	content.add_child(heading)
 	var amount := Label.new()
 	amount.text = value
-	amount.add_theme_font_size_override("font_size", 21)
-	amount.add_theme_color_override("font_color", Color("#f2f6fa"))
+	amount.add_theme_font_size_override("font_size", 29)
+	amount.add_theme_color_override("font_color", Color("#ffffff"))
+	amount.add_theme_constant_override("outline_size", 1)
+	amount.add_theme_color_override("font_outline_color", Color("#08111c"))
 	content.add_child(amount)
+	var heading := Label.new()
+	heading.text = caption.to_upper()
+	heading.add_theme_font_size_override("font_size", 11)
+	heading.add_theme_color_override("font_color", Color("#c4d2df"))
+	content.add_child(heading)
 	var note := Label.new()
-	note.text = detail
+	note.text = detail.to_upper()
 	note.add_theme_font_size_override("font_size", 9)
-	note.add_theme_color_override("font_color", Color("#8293a3"))
+	note.add_theme_color_override("font_color", accent)
 	content.add_child(note)
 	return card
 
@@ -3655,8 +3664,9 @@ func _make_feature_card(caption: String, detail: String, accent: Color, callback
 	button.add_theme_constant_override("outline_size", 1)
 	button.add_theme_color_override("font_outline_color", Color("#080d14"))
 	var normal := _dashboard_card_style(accent)
-	normal.bg_color = Color("#1b2838")
-	normal.set_content_margin_all(12)
+	normal.bg_color = Color("#172233")
+	normal.border_width_top = 7
+	normal.set_content_margin_all(14)
 	button.add_theme_stylebox_override("normal", normal)
 	var hover := normal.duplicate()
 	hover.bg_color = Color("#26394d")
@@ -3778,17 +3788,17 @@ func _panel_style(fill: String) -> StyleBoxFlat:
 	var source := Color(fill)
 	style.bg_color = Color("#1b2838") if source.get_luminance() > 0.20 else Color("#121c2b")
 	style.border_width_left = 1
-	style.border_width_top = 4
+	style.border_width_top = 6
 	style.border_width_right = 1
 	style.border_width_bottom = 1
 	style.border_color = Color("#00f0ff")
-	style.shadow_color = Color(0.0, 0.94, 1.0, 0.24)
-	style.shadow_size = 9
-	style.set_content_margin_all(14)
-	style.corner_radius_top_left = 10
-	style.corner_radius_top_right = 10
-	style.corner_radius_bottom_left = 10
-	style.corner_radius_bottom_right = 10
+	style.shadow_color = Color(0.0, 0.94, 1.0, 0.30)
+	style.shadow_size = 10
+	style.set_content_margin_all(15)
+	style.corner_radius_top_left = 11
+	style.corner_radius_top_right = 11
+	style.corner_radius_bottom_left = 11
+	style.corner_radius_bottom_right = 11
 	return style
 
 func _small_label(caption: String) -> Label:
