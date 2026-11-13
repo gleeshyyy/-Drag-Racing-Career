@@ -229,6 +229,11 @@ var section_panel: VBoxContainer
 var track_visual: DragTrack
 var track_title_label: Label
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_CLOSE_REQUEST:
+		_save_career()
+		_save_audio_setting()
+
 func _ready() -> void:
 	_setup_audio()
 	_load_career_save()
@@ -430,6 +435,8 @@ func _build_interface() -> void:
 	nitro_bar.max_value = nitro_capacity
 	nitro_bar.value = nitro_remaining
 	nitro_bar.show_percentage = false
+	nitro_bar.add_theme_stylebox_override("background", _progress_style("#172330"))
+	nitro_bar.add_theme_stylebox_override("fill", _progress_style("#25c8c0"))
 	race_panel.add_child(nitro_bar)
 
 	var hint := Label.new()
@@ -2914,13 +2921,16 @@ func _update_hud() -> void:
 	speed_label.text = "%d km/h" % int(player_speed)
 	distance_label.text = "%d / %d m" % [int(minf(player_distance, race_distance)), int(race_distance)]
 	rpm_label.text = "RPM  %d" % int(rpm)
+	rpm_label.add_theme_color_override("font_color", Color("#ff5945") if rpm >= 6500.0 else (Color("#f5bd4f") if rpm >= 5000.0 else Color("#b8c6d4")))
 	gear_label.text = "GEAR  %d" % gear
+	gear_label.add_theme_color_override("font_color", Color("#25c8c0") if nitro_active else Color("#ffffff"))
 	player_bar.max_value = race_distance
 	player_bar.value = minf(player_distance, race_distance)
 	rival_bar.max_value = race_distance
 	rival_bar.value = minf(rival_distance, race_distance)
 	track_visual.set_player_paint(Color(str(car_paints.get(active_car, "#f5a623"))))
-	track_visual.set_progress(player_distance / race_distance, rival_distance / race_distance)
+	var safe_distance := maxf(1.0, race_distance)
+	track_visual.set_progress(player_distance / safe_distance, rival_distance / safe_distance)
 	if is_instance_valid(nitro_bar):
 		nitro_bar.max_value = nitro_capacity
 		nitro_bar.value = nitro_remaining
@@ -3391,7 +3401,9 @@ func _setup_audio() -> void:
 func _save_audio_setting() -> void:
 	var settings := ConfigFile.new()
 	settings.set_value("audio", "sound_enabled", sound_enabled)
-	settings.save("user://game_settings.cfg")
+	var error := settings.save("user://game_settings.cfg")
+	if error != OK:
+		push_warning("Could not save game settings.")
 
 func _play_ui_click() -> void:
 	_play_sfx("click")
@@ -3494,6 +3506,15 @@ func _make_button(caption: String, fill: Color) -> Button:
 	button.add_theme_stylebox_override("disabled", disabled)
 	button.pressed.connect(_play_ui_click)
 	return button
+
+func _progress_style(fill: String) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(fill)
+	style.corner_radius_top_left = 5
+	style.corner_radius_top_right = 5
+	style.corner_radius_bottom_left = 5
+	style.corner_radius_bottom_right = 5
+	return style
 
 func _panel_style(fill: String) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
