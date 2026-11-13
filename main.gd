@@ -840,10 +840,10 @@ func _finish_race() -> void:
 		section_panel.hide()
 		if won:
 			title_label.text = "RACE WON!"
-			status_label.text = "You beat %s in %.2f seconds." % [rival_name, race_time]
+			status_label.text = "You beat %s in %.2f seconds.%s" % [rival_name, race_time, " NEW PERSONAL BEST!" if new_personal_best else ""]
 		else:
 			title_label.text = "RACE LOST"
-			status_label.text = "%s got there first. Run it back." % rival_name
+			status_label.text = "%s got there first. Run it back.%s" % [rival_name, " NEW PERSONAL BEST!" if new_personal_best else ""]
 
 func _update_rival_career_results(player_won: bool) -> void:
 	_ensure_rival_records()
