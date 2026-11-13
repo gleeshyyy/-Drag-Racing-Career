@@ -760,22 +760,26 @@ func _start_race() -> void:
 		rival_target_speed = 238.0
 		rival_acceleration = 19.0
 	title_label.text = "GET READY"
-	status_label.text = "You vs %s  •  Take your position." % rival_name
+	status_label.text = "Hold ACCELERATE now. Launch when the countdown says GO!"
 	_clear_section()
-	_add_section_label("RACE STARTING")
+	_add_section_label("HOLD ACCELERATE TO PREPARE YOUR LAUNCH")
 	var countdown_label := _large_label("3")
 	countdown_label.add_theme_font_size_override("font_size", 76)
 	countdown_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	section_panel.add_child(countdown_label)
+	if is_instance_valid(throttle_button):
+		throttle_button.text = "HOLD TO LAUNCH!"
+	race_panel.show()
 	for count in [3, 2, 1]:
 		countdown_label.text = str(count)
 		await get_tree().create_timer(0.85).timeout
 	countdown_label.text = "GO!"
 	countdown_label.add_theme_color_override("font_color", Color("#f5a623"))
+	title_label.text = "MAKE YOUR MOVE"
 	await get_tree().create_timer(0.45).timeout
 	section_panel.hide()
-	race_panel.show()
-	title_label.text = "MAKE YOUR MOVE"
+	if is_instance_valid(throttle_button):
+		throttle_button.text = "HOLD TO ACCELERATE"
 	if is_instance_valid(track_title_label):
 		track_title_label.text = "%s  /  %d M" % [race_event_name.to_upper(), int(race_distance)]
 	status_label.text = "You vs %s  •  Beat them to %d metres." % [rival_name, int(race_distance)]
