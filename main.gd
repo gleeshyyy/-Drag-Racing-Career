@@ -77,6 +77,7 @@ var garage_return_to_career := false
 var rival_name := "Darius Cole"
 var rival_names := ["Darius Cole", "Maya Brooks", "Jaxon Reed", "Andre Silva"]
 var quick_rival_name := ""
+var quick_searching := false
 
 var title_label: Label
 var status_label: Label
@@ -637,15 +638,44 @@ func _show_quick_matchmaking() -> void:
 	section_panel.add_child(back_button)
 
 func _search_quick_opponent() -> void:
+	if quick_searching:
+		return
+	quick_searching = true
+	_clear_section()
+	_add_section_label("SCANNING AI DRIVER ROSTER")
+	var search_status := _small_label("Connecting to local race network...")
+	search_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	section_panel.add_child(search_status)
+	var progress := ProgressBar.new()
+	progress.min_value = 0
+	progress.max_value = 100
+	progress.value = 0
+	progress.show_percentage = true
+	progress.custom_minimum_size = Vector2(0, 22)
+	section_panel.add_child(progress)
+	_add_section_label("NO INTERNET REQUIRED  •  LOCAL AI MATCHMAKING")
+	var search_messages := [
+		"Checking available drivers...",
+		"Comparing driver skill levels...",
+		"Finding a suitable opponent...",
+		"Preparing the race invitation..."
+	]
+	for step in range(20):
+		progress.value = (step + 1) * 5
+		search_status.text = str(search_messages[min(step / 5, search_messages.size() - 1)])
+		for dot_count in range((step % 3) + 1):
+			search_status.text += "."
+		await get_tree().create_timer(0.12).timeout
 	var available_rivals := rival_names.duplicate()
 	if available_rivals.size() > 1 and available_rivals.has(quick_rival_name):
 		available_rivals.erase(quick_rival_name)
 	quick_rival_name = str(available_rivals[randi_range(0, available_rivals.size() - 1)])
+	quick_searching = false
 	_clear_section()
 	_add_section_label("OPPONENT FOUND")
 	_add_section_label(quick_rival_name.to_upper())
 	_add_section_label("AI DRIVER  •  DRAG RACING CHALLENGER")
-	_add_section_label("This driver has been selected for your Quick Race.")
+	_add_section_label("Your opponent is ready. Get to the starting line.")
 	var race_button := _make_button("RACE THIS DRIVER", Color("#f5a623"))
 	race_button.pressed.connect(func():
 		career_race = false
