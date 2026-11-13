@@ -54,6 +54,7 @@ var player_distance := 0.0
 var rival_distance := 0.0
 var player_speed := 0.0
 var rival_speed := 0.0
+var rival_acceleration := 19.0
 var rpm := 900.0
 var gear := 1
 var throttle_down := false
@@ -115,7 +116,7 @@ func _process(delta: float) -> void:
 	else:
 		player_speed = maxf(0.0, player_speed - 4.0 * delta)
 		rpm = maxf(900.0, rpm - 1800.0 * delta)
-	rival_speed = minf(rival_target_speed, rival_speed + 19.0 * delta)
+	rival_speed = minf(rival_target_speed, rival_speed + rival_acceleration * delta)
 	player_distance += player_speed / 3.6 * delta
 	rival_distance += rival_speed / 3.6 * delta
 	_update_hud()
@@ -735,10 +736,23 @@ func _start_race() -> void:
 	if career_race:
 		rival_name = str(rival_names[(career_wins + career_losses) % rival_names.size()])
 		var selected_record: Dictionary = rival_records.get(rival_name, {})
-		rival_target_speed = float(_get_selected_event()["rival_speed"]) + float(selected_record.get("rating", 50) - 50) * 0.22
+		var rival_car := str(selected_record.get("car", "Street Compact"))
+		var rival_upgrades := int(selected_record.get("upgrade_level", 0))
+		var rival_rating := int(selected_record.get("rating", 50))
+		var car_speed_bonus := 0.0
+		var car_acceleration_bonus := 0.0
+		if rival_car == "Turbo Coupe":
+			car_speed_bonus = 6.0
+			car_acceleration_bonus = 1.2
+		elif rival_car == "Muscle V8":
+			car_speed_bonus = 12.0
+			car_acceleration_bonus = 2.4
+		rival_target_speed = float(_get_selected_event()["rival_speed"]) + float(rival_rating - 50) * 0.22 + float(rival_upgrades) * 0.8 + car_speed_bonus
+		rival_acceleration = 19.0 + float(rival_upgrades) * 0.35 + car_acceleration_bonus + float(rival_rating - 50) * 0.025
 	else:
 		rival_name = quick_rival_name if quick_rival_name != "" else rival_names[randi_range(0, rival_names.size() - 1)]
 		rival_target_speed = 238.0
+		rival_acceleration = 19.0
 	title_label.text = "GET READY"
 	status_label.text = "You vs %s  •  Take your position." % rival_name
 	_clear_section()
