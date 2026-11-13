@@ -61,6 +61,7 @@ var throttle_down := false
 var shift_cooldown := 0.0
 var race_time := 0.0
 var race_top_speed := 0.0
+var last_top_speed_record := false
 var personal_bests: Dictionary = {}
 var personal_top_speeds: Dictionary = {}
 var race_history: Array = []
@@ -1073,8 +1074,8 @@ func _finish_race() -> void:
 	if new_personal_best:
 		personal_bests[record_key] = race_time
 	var previous_top_speed := float(personal_top_speeds.get(record_key, 0.0))
-	var new_top_speed_record := race_top_speed > previous_top_speed
-	if new_top_speed_record:
+	last_top_speed_record = race_top_speed > previous_top_speed
+	if last_top_speed_record:
 		personal_top_speeds[record_key] = race_top_speed
 	var race_prize := race_reward if was_career_race and won else 0
 	race_history.push_front({
@@ -1130,7 +1131,7 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 	_add_section_label("RACE RESULTS  |  " + race_event_name.to_upper())
 	_add_section_label("OPPONENT  |  " + rival_name)
 	_add_section_label("YOUR TIME  |  %.2f seconds" % race_time)
-	_add_section_label("TOP SPEED  |  %d km/h%s" % [int(race_top_speed), "  •  NEW RECORD!" if new_top_speed_record else ""])
+	_add_section_label("TOP SPEED  |  %d km/h%s" % [int(race_top_speed), "  •  NEW RECORD!" if last_top_speed_record else ""])
 	_add_section_label("DISTANCE  |  %d metres" % int(race_distance))
 	_add_section_label("PRIZE MONEY  |  $%s" % str(race_reward if was_career_race and won else 0))
 	if was_career_race:
