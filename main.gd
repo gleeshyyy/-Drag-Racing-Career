@@ -299,9 +299,9 @@ func _build_interface() -> void:
 	add_child(bottom_accent)
 	var root := VBoxContainer.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	root.add_theme_constant_override("separation", 16)
-	root.add_theme_constant_override("margin_left", 22)
-	root.add_theme_constant_override("margin_right", 22)
+	root.add_theme_constant_override("separation", 10)
+	root.add_theme_constant_override("margin_left", 18)
+	root.add_theme_constant_override("margin_right", 18)
 	root.add_theme_constant_override("margin_top", 30)
 	root.add_theme_constant_override("margin_bottom", 24)
 	add_child(root)
@@ -316,7 +316,7 @@ func _build_interface() -> void:
 	title_label = Label.new()
 	title_label.text = "OWN THE STRIP.\nBUILD YOUR LEGACY."
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_label.add_theme_font_size_override("font_size", 34)
+	title_label.add_theme_font_size_override("font_size", 30)
 	title_label.add_theme_color_override("font_color", Color("#f2f6fa"))
 	root.add_child(title_label)
 
@@ -629,15 +629,42 @@ func _show_career_dashboard() -> void:
 	_clear_section()
 	_refresh_team_offers()
 	var event: Dictionary = _get_selected_event()
-	_add_section_label("SEASON %d  /  %s" % [season_number, _career_tier_name().to_upper()])
-	var hero := _make_hero_button("ENTER NEXT RACE\n%s  •  %d M  •  PRIZE $%s\nTAP TO ENTER THE STRIP  →" % [race_event_name.to_upper(), int(event["distance"]), str(event["reward"])])
-	hero.custom_minimum_size = Vector2(0, 142)
-	hero.add_theme_font_size_override("font_size", 19)
+
+	var identity_card := PanelContainer.new()
+	identity_card.add_theme_stylebox_override("panel", _dashboard_card_style(Color("#00f0ff")))
+	var identity_box := VBoxContainer.new()
+	identity_box.add_theme_constant_override("separation", 5)
+	identity_card.add_child(identity_box)
+	var identity_kicker := _small_label("DRIVER PROFILE  /  SEASON %d" % season_number)
+	identity_kicker.add_theme_color_override("font_color", Color("#00f0ff"))
+	identity_box.add_child(identity_kicker)
+	var identity_name := Label.new()
+	identity_name.text = driver_name.capitalize() if driver_name.strip_edges() != "" else "Rookie Driver"
+	identity_name.add_theme_font_size_override("font_size", 25)
+	identity_name.add_theme_color_override("font_color", Color("#f2f6fa"))
+	identity_box.add_child(identity_name)
+	var identity_tier := Label.new()
+	identity_tier.text = "%s DIVISION  •  LEVEL %d" % [_career_tier_name().to_upper(), _driver_level()]
+	identity_tier.add_theme_font_size_override("font_size", 11)
+	identity_tier.add_theme_color_override("font_color", Color("#9aabba"))
+	identity_box.add_child(identity_tier)
+	section_panel.add_child(identity_card)
+
+	var race_heading := _small_label("NEXT UP  /  YOUR SELECTED EVENT")
+	race_heading.add_theme_color_override("font_color", Color("#f5a623"))
+	section_panel.add_child(race_heading)
+	var hero := _make_hero_button("ENTER NEXT RACE\n%s  •  %d M  •  PRIZE $%s\nTAP TO ENTER THE STRIP  →" % [race_event_name.to_upper(), int(event["distance"]), _format_number(int(event["reward"]))])
+	hero.custom_minimum_size = Vector2(0, 132)
+	hero.add_theme_font_size_override("font_size", 18)
 	hero.pressed.connect(func():
 		career_race = true
 		_start_race()
 	)
 	section_panel.add_child(hero)
+
+	var stats_heading := _small_label("CAREER SNAPSHOT")
+	stats_heading.add_theme_color_override("font_color", Color("#9aabba"))
+	section_panel.add_child(stats_heading)
 	var stats_grid := GridContainer.new()
 	stats_grid.columns = 2
 	stats_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -648,22 +675,45 @@ func _show_career_dashboard() -> void:
 	stats_grid.add_child(_make_dashboard_stat("CAREER WINS", str(career_wins), "%d LOSSES" % career_losses, Color("#00f0ff")))
 	stats_grid.add_child(_make_dashboard_stat("REPUTATION", str(career_reputation), "STREET CRED", Color("#e85d75")))
 	stats_grid.add_child(_make_dashboard_stat("DRIVER LEVEL", str(_driver_level()), "%d / 250 XP" % (career_xp % 250), Color("#9b8cff")))
-	_add_section_label("CAREER PROGRESSION  /  NEXT MILESTONE")
-	var milestone := PanelContainer.new()
-	milestone.add_theme_stylebox_override("panel", _dashboard_card_style(Color("#00f0ff")))
-	var milestone_box := VBoxContainer.new()
-	milestone_box.add_theme_constant_override("separation", 4)
-	milestone.add_child(milestone_box)
-	var tier_label := _small_label("CURRENT TIER  •  " + _career_tier_name().to_upper())
-	milestone_box.add_child(tier_label)
+
+	var progress_card := PanelContainer.new()
+	progress_card.add_theme_stylebox_override("panel", _dashboard_card_style(Color("#9b8cff")))
+	var progress_box := VBoxContainer.new()
+	progress_box.add_theme_constant_override("separation", 6)
+	progress_card.add_child(progress_box)
+	var progress_row := HBoxContainer.new()
+	var progress_title := _small_label("DRIVER PROGRESSION")
+	progress_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	progress_box.add_child(progress_title)
+	var xp_label := _small_label("%d / 250 XP" % (career_xp % 250))
+	xp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	progress_row.add_child(xp_label)
+	progress_box.add_child(progress_row)
+	var xp_bar := ProgressBar.new()
+	xp_bar.max_value = 250
+	xp_bar.value = career_xp % 250
+	xp_bar.custom_minimum_size = Vector2(0, 13)
+	xp_bar.show_percentage = false
+	xp_bar.add_theme_stylebox_override("background", _panel_style("#0b1420"))
+	var xp_fill := StyleBoxFlat.new()
+	xp_fill.bg_color = Color("#9b8cff")
+	xp_fill.corner_radius_top_left = 5
+	xp_fill.corner_radius_top_right = 5
+	xp_fill.corner_radius_bottom_left = 5
+	xp_fill.corner_radius_bottom_right = 5
+	xp_bar.add_theme_stylebox_override("fill", xp_fill)
+	progress_box.add_child(xp_bar)
 	var next_label := Label.new()
 	next_label.text = _next_career_tier_text()
 	next_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	next_label.add_theme_font_size_override("font_size", 14)
-	next_label.add_theme_color_override("font_color", Color("#edf4f8"))
-	milestone_box.add_child(next_label)
-	section_panel.add_child(milestone)
-	_add_section_label("YOUR CAREER")
+	next_label.add_theme_font_size_override("font_size", 12)
+	next_label.add_theme_color_override("font_color", Color("#c4d2df"))
+	progress_box.add_child(next_label)
+	section_panel.add_child(progress_card)
+
+	var hub_heading := _small_label("CAREER OPERATIONS")
+	hub_heading.add_theme_color_override("font_color", Color("#9aabba"))
+	section_panel.add_child(hub_heading)
 	var hub_grid := GridContainer.new()
 	hub_grid.columns = 2
 	hub_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -676,12 +726,34 @@ func _show_career_dashboard() -> void:
 		_show_garage()
 	))
 	hub_grid.add_child(_make_feature_card("MANAGEMENT", "STORY, FINANCES & RECORDS", Color("#9b8cff"), _show_more_hub))
-	_add_section_label("LATEST ACTIVITY")
-	_add_section_label(last_result)
+	hub_grid.add_child(_make_feature_card("DRIVER PROFILE", "YOUR CAREER IDENTITY", Color("#e85d75"), _show_driver_profile))
+
+	var activity_heading := _small_label("LATEST ACTIVITY")
+	activity_heading.add_theme_color_override("font_color", Color("#9aabba"))
+	section_panel.add_child(activity_heading)
+	var activity_card := PanelContainer.new()
+	activity_card.add_theme_stylebox_override("panel", _dashboard_card_style(Color("#65798d")))
+	var activity_box := VBoxContainer.new()
+	activity_box.add_theme_constant_override("separation", 5)
+	activity_card.add_child(activity_box)
+	var activity_label := Label.new()
+	activity_label.text = last_result
+	activity_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	activity_label.add_theme_font_size_override("font_size", 13)
+	activity_label.add_theme_color_override("font_color", Color("#edf4f8"))
+	activity_box.add_child(activity_label)
 	if career_inbox.size() > 0:
-		_add_section_label("INBOX  |  %d message(s) waiting" % career_inbox.size())
+		var inbox_label := _small_label("INBOX  /  %d MESSAGE(S) WAITING" % career_inbox.size())
+		inbox_label.add_theme_color_override("font_color", Color("#00f0ff"))
+		activity_box.add_child(inbox_label)
 	if last_career_notification != "":
-		_add_section_label(last_career_notification)
+		var notification_label := Label.new()
+		notification_label.text = last_career_notification
+		notification_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		notification_label.add_theme_font_size_override("font_size", 11)
+		notification_label.add_theme_color_override("font_color", Color("#f5a623"))
+		activity_box.add_child(notification_label)
+	section_panel.add_child(activity_card)
 
 func _show_racing_hub() -> void:
 	menu_panel.hide()
