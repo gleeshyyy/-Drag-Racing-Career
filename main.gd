@@ -380,7 +380,7 @@ func _finish_race() -> void:
 			career_losses += 1
 			last_result = "Defeat vs " + rival_name
 		career_race = false
-	trace_panel.hide()
+	race_panel.hide()
 	if was_career_race:
 		_show_career_dashboard()
 	else:
