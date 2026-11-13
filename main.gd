@@ -39,6 +39,47 @@ class DragTrack extends Control:
 		draw_circle(Vector2(x + 11, center_y + 8), 2.5, Color("#aeb9c3"))
 		draw_circle(Vector2(x + 39, center_y + 8), 2.5, Color("#aeb9c3"))
 
+
+class GarageCarArt extends Control:
+	var paint := Color("#f5a623")
+
+	func _draw() -> void:
+		var w := size.x
+		var h := size.y
+		var glow := Color(paint.r, paint.g, paint.b, 0.12)
+		draw_circle(Vector2(w * 0.52, h * 0.70), minf(w * 0.34, h * 0.42), glow)
+		draw_rect(Rect2(Vector2(0, h * 0.82), Vector2(w, h * 0.18)), Color("#101a26"))
+		for x in range(12, int(w), 34):
+			draw_line(Vector2(x, h * 0.84), Vector2(x + 15, h * 0.84), Color("#536477"), 2.0)
+		var car_width := minf(w * 0.76, 390.0)
+		var car_height := car_width * 0.36
+		var x := (w - car_width) * 0.5
+		var y := h * 0.54 - car_height * 0.5
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(x + car_width * 0.04, y + car_height * 0.60),
+			Vector2(x + car_width * 0.13, y + car_height * 0.32),
+			Vector2(x + car_width * 0.31, y + car_height * 0.10),
+			Vector2(x + car_width * 0.62, y + car_height * 0.10),
+			Vector2(x + car_width * 0.78, y + car_height * 0.36),
+			Vector2(x + car_width * 0.96, y + car_height * 0.48),
+			Vector2(x + car_width, y + car_height * 0.68),
+			Vector2(x + car_width * 0.96, y + car_height * 0.82),
+			Vector2(x + car_width * 0.03, y + car_height * 0.82)
+		]), paint)
+		draw_colored_polygon(PackedVector2Array([
+			Vector2(x + car_width * 0.34, y + car_height * 0.16),
+			Vector2(x + car_width * 0.59, y + car_height * 0.16),
+			Vector2(x + car_width * 0.72, y + car_height * 0.40),
+			Vector2(x + car_width * 0.23, y + car_height * 0.40)
+		]), Color("#a9d5e8"))
+		draw_rect(Rect2(Vector2(x + car_width * 0.02, y + car_height * 0.62), Vector2(car_width * 0.96, car_height * 0.07)), Color("#f4f7fa"))
+		draw_rect(Rect2(Vector2(x + car_width * 0.86, y + car_height * 0.52), Vector2(car_width * 0.11, car_height * 0.09)), Color("#fff0b0"))
+		for wheel_x in [x + car_width * 0.23, x + car_width * 0.76]:
+			draw_circle(Vector2(wheel_x, y + car_height * 0.78), car_height * 0.25, Color("#070b10"))
+			draw_circle(Vector2(wheel_x, y + car_height * 0.78), car_height * 0.12, Color("#9aa8b5"))
+		draw_line(Vector2(x + car_width * 0.08, y + car_height * 0.94), Vector2(x + car_width * 0.92, y + car_height * 0.94), Color(paint.r, paint.g, paint.b, 0.7), 3.0)
+
+
 const TRACK_LENGTH := 402.0
 const ACCELERATION := 23.0
 const MAX_SPEED := 290.0
@@ -951,12 +992,62 @@ func _show_garage() -> void:
 	menu_panel.hide()
 	race_panel.hide()
 	section_panel.show()
-	title_label.text = "YOUR GARAGE"
-	status_label.text = "CASH  $%s  •  ACTIVE CAR  %s" % [_format_number(career_cash), active_car.to_upper()]
+	title_label.text = "THE GARAGE"
+	status_label.text = "CASH  $%s  •  %d VEHICLES OWNED" % [_format_number(career_cash), owned_cars.size()]
 	_clear_section()
-	_add_section_label("YOUR VEHICLE COLLECTION")
+
+	var active_data: Dictionary = {}
+	for item in _car_catalog():
+		if str(item["name"]) == active_car:
+			active_data = item
+			break
+	if active_data.is_empty():
+		active_data = _car_catalog()[0]
+	var condition := clampf(float(car_condition.get(active_car, 100.0)), 0.0, 100.0)
+	var fuel := clampf(float(car_fuel.get(active_car, 100.0)), 0.0, 100.0)
+	var current_paint := str(car_paints.get(active_car, "#f5a623"))
+
+	var showcase := PanelContainer.new()
+	showcase.add_theme_stylebox_override("panel", _dashboard_card_style(Color("#f5a623")))
+	section_panel.add_child(showcase)
+	var showcase_box := VBoxContainer.new()
+	showcase_box.add_theme_constant_override("separation", 7)
+	showcase.add_child(showcase_box)
+	var kicker := _small_label("ACTIVE VEHICLE  /  READY FOR THE STRIP")
+	kicker.add_theme_color_override("font_color", Color("#f5a623"))
+	showcase_box.add_child(kicker)
+	var car_art := GarageCarArt.new()
+	car_art.name = "ActiveGarageCarArtwork"
+	car_art.paint = Color(current_paint)
+	car_art.custom_minimum_size = Vector2(0, 178)
+	car_art.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	showcase_box.add_child(car_art)
+	var car_title := Label.new()
+	car_title.text = active_car.to_upper()
+	car_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	car_title.add_theme_font_size_override("font_size", 23)
+	car_title.add_theme_color_override("font_color", Color("#f3f7fb"))
+	showcase_box.add_child(car_title)
+	var car_subtitle := _small_label(str(active_data["description"]).to_upper())
+	car_subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	showcase_box.add_child(car_subtitle)
+
+	var performance := GridContainer.new()
+	performance.columns = 2 if get_viewport_rect().size.x >= 520.0 else 1
+	performance.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	performance.add_theme_constant_override("h_separation", 8)
+	performance.add_theme_constant_override("v_separation", 7)
+	showcase_box.add_child(performance)
+	performance.add_child(_make_dashboard_stat("TOP SPEED", "%.0f KM/H" % car_max_speed, "CURRENT BUILD", Color("#00d8ef")))
+	performance.add_child(_make_dashboard_stat("ACCELERATION", "%.1f" % car_acceleration, "CURRENT BUILD", Color("#f5a623")))
+	performance.add_child(_make_dashboard_stat("CONDITION", "%.0f%%" % condition, "VEHICLE HEALTH", Color("#25c8a5")))
+	performance.add_child(_make_dashboard_stat("FUEL", "%.0f%%" % fuel, "TANK LEVEL", Color("#9b8cff")))
+
+	var section_heading := _small_label("YOUR COLLECTION  /  SELECT OR ACQUIRE")
+	section_heading.add_theme_color_override("font_color", Color("#00d8ef"))
+	section_panel.add_child(section_heading)
 	var cars_grid := GridContainer.new()
-	cars_grid.columns = 2
+	cars_grid.columns = 2 if get_viewport_rect().size.x >= 520.0 else 1
 	cars_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	cars_grid.add_theme_constant_override("h_separation", 9)
 	cars_grid.add_theme_constant_override("v_separation", 9)
@@ -967,12 +1058,13 @@ func _show_garage() -> void:
 		var is_active := active_car == car_name
 		var caption := ""
 		if is_active:
-			caption = "ACTIVE  •  " + car_name
+			caption = "CURRENTLY SELECTED"
 		elif is_owned:
-			caption = "SELECT  •  " + car_name
+			caption = "SELECT VEHICLE"
 		else:
-			caption = "BUY  •  %s  •  $%s" % [car_name, _format_number(int(car["price"]))]
-		var car_button := _make_feature_card(car_name.to_upper(), "%s\n%d KM/H  •  %d ACCEL" % [caption, int(car["speed"]), int(car["acceleration"])], Color("#f5a623") if is_active else Color("#00aebb"), Callable())
+			caption = "PURCHASE  •  $%s" % _format_number(int(car["price"]))
+		var accent := Color("#f5a623") if is_active else Color("#00aebb")
+		var car_button := _make_feature_card(car_name.to_upper(), "%s\n%d KM/H  •  %.0f ACCEL" % [caption, int(car["speed"]), float(car["acceleration"])], accent, Callable())
 		car_button.pressed.disconnect(_play_ui_click)
 		if not is_active:
 			if is_owned:
@@ -982,35 +1074,44 @@ func _show_garage() -> void:
 		else:
 			car_button.disabled = true
 		cars_grid.add_child(car_button)
-	_add_section_label("TUNING & APPEARANCE")
+
+	var actions_heading := _small_label("BUILD & PERSONALIZE")
+	actions_heading.add_theme_color_override("font_color", Color("#00d8ef"))
+	section_panel.add_child(actions_heading)
 	var garage_actions := GridContainer.new()
-	garage_actions.columns = 2
+	garage_actions.columns = 2 if get_viewport_rect().size.x >= 520.0 else 1
 	garage_actions.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	garage_actions.add_theme_constant_override("h_separation", 9)
 	garage_actions.add_theme_constant_override("v_separation", 9)
 	section_panel.add_child(garage_actions)
-	garage_actions.add_child(_make_feature_card("UPGRADES", "ENGINE, TURBO & MORE", Color("#00c7e8"), _show_upgrades))
-	garage_actions.add_child(_make_feature_card("CUSTOMIZE", "PAINT & STYLE", Color("#9b8cff"), _show_customization))
-	var condition := clampf(float(car_condition.get(active_car, 100.0)), 0.0, 100.0)
-	_add_section_label("ACTIVE CAR CONDITION  |  %.1f%%" % condition)
-	_add_section_label("Wear reduces speed and acceleration. Service restores full performance.")
+	garage_actions.add_child(_make_feature_card("PERFORMANCE", "ENGINE  •  TURBO  •  TYRES", Color("#00c7e8"), _show_upgrades))
+	garage_actions.add_child(_make_feature_card("PAINT SHOP", "COLORS & APPEARANCE", Color("#9b8cff"), _show_customization))
+
+	var service_card := PanelContainer.new()
+	service_card.add_theme_stylebox_override("panel", _dashboard_card_style(Color("#25a9a1")))
+	var service_box := VBoxContainer.new()
+	service_box.add_theme_constant_override("separation", 5)
+	service_card.add_child(service_box)
+	var service_heading := _small_label("MAINTENANCE BAY")
+	service_heading.add_theme_color_override("font_color", Color("#25c8a5"))
+	service_box.add_child(service_heading)
+	service_box.add_child(_small_label("Condition and fuel affect your car's performance."))
 	if current_team != "":
-		_add_section_label("TEAM DISCOUNT  |  %d%%" % int(_team_discount_rate()*100.0))
+		service_box.add_child(_small_label("TEAM DISCOUNT  |  %d%%" % int(_team_discount_rate() * 100.0)))
 	var service_cost := int(ceil((100.0 - condition) * 25.0 * (1.0 - _team_discount_rate())))
-	var service_button := _make_button("SERVICE CAR  |  $%s" % str(service_cost), Color("#25a9a1"))
+	var service_button := _make_button("RESTORE CONDITION  •  $%s" % _format_number(service_cost), Color("#25a9a1"))
 	service_button.disabled = condition >= 99.9 or career_cash <= 0
 	service_button.pressed.connect(_service_active_car)
-	section_panel.add_child(service_button)
-	var fuel := clampf(float(car_fuel.get(active_car, 100.0)), 0.0, 100.0)
-	_add_section_label("FUEL LEVEL  |  %.1f%%" % fuel)
-	_add_section_label("Low fuel reduces engine performance. Team discounts apply to refuelling.")
+	service_box.add_child(service_button)
 	var refuel_cost := int(ceil((100.0 - fuel) * 10.0 * (1.0 - _team_discount_rate())))
-	var refuel_button := _make_button("REFUEL CAR  |  $%s" % str(refuel_cost), Color("#2675a8"))
+	var refuel_button := _make_button("REFILL FUEL  •  $%s" % _format_number(refuel_cost), Color("#2675a8"))
 	refuel_button.add_theme_color_override("font_color", Color.WHITE)
 	refuel_button.disabled = fuel >= 99.9 or career_cash <= 0
 	refuel_button.pressed.connect(_refuel_active_car)
-	section_panel.add_child(refuel_button)
-	var back_button := _make_button("BACK", Color("#263545"))
+	service_box.add_child(refuel_button)
+	section_panel.add_child(service_card)
+
+	var back_button := _make_button("BACK TO CAREER HQ", Color("#263545"))
 	back_button.add_theme_color_override("font_color", Color.WHITE)
 	if garage_return_to_career:
 		back_button.pressed.connect(_show_career_dashboard)
