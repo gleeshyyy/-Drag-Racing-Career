@@ -41,7 +41,7 @@ const context = {
 context.globalThis = context;
 vm.runInNewContext(source + `
 globalThis.__test = {
-  startCareer, renderGarage, renderRacing, finishRace, endWeek, go,
+  startCareer, renderGarage, renderRacing, renderManagement, finishRace, endWeek, go, buyCar, upgrade,
   getState: () => state, getSelectedEvent: () => selectedEvent,
   getSeasonEvent: () => currentSeasonEvent()
 };
@@ -55,6 +55,18 @@ assert.equal(state.driver, 'Test driver');
 assert.deepEqual(Array.from(state.ownedCars), ['Starter Coupe']);
 assert.deepEqual(Array.from(state.upgrades), []);
 assert.equal(state.season.week, 1);
+
+state.cash = 5000;
+game.upgrade();
+assert.equal(state.vehiclePower['Starter Coupe'], 225);
+game.buyCar('Street Compact');
+game.upgrade();
+assert.equal(state.carPower, 270);
+game.buyCar('Starter Coupe');
+assert.equal(state.carPower, 225, 'vehicle tuning should be preserved when switching cars');
+game.buyCar('Street Compact');
+assert.equal(state.carPower, 270);
+game.buyCar('Starter Coupe');
 
 game.renderGarage();
 assert.match(document.getElementById('screen').innerHTML, /VEHICLE DEALERSHIP/);
@@ -96,6 +108,13 @@ assert.equal(state.season.number, 2, 'season should roll over after round eight'
 assert.equal(state.season.week, 1);
 assert.equal(state.season.points, 0);
 assert.equal(state.season.history.length, 1);
+state.sponsor = 'NITROLINE PERFORMANCE';
+state.sponsorProgress = 2;
+game.finishRace(true, 12.0, 'WIN — YOU BEAT JAX', 0.2, 12.6);
+assert.equal(state.sponsorCompleted, true, 'completed sponsor contract must not be re-offered');
+assert.equal(state.sponsor, null);
+game.renderManagement();
+assert.match(document.getElementById('screen').innerHTML, /NITROLINE CONTRACT COMPLETED/);
 assert.ok(storage.has('dragless-rivalry-career-v1'), 'career save should persist');
 
 console.log('PASS: fresh career, garage, race entry, race cancellation, round scoring, false starts, forfeits, season rollover and local save.');
