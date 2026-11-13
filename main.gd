@@ -873,8 +873,25 @@ func _show_subpage(page_title: String, body: String, back_caption: String) -> vo
 	race_panel.hide()
 	section_panel.show()
 	title_label.text = page_title
-	status_label.text = body
+	status_label.text = "CAREER RECORDS AND DRIVER STATISTICS"
 	_clear_section()
+	section_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	var content_scroll := ScrollContainer.new()
+	content_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	content_scroll.custom_minimum_size = Vector2(0, 220)
+	content_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	section_panel.add_child(content_scroll)
+	var content_label := Label.new()
+	content_label.text = body
+	content_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	content_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
+	content_label.add_theme_font_size_override("font_size", 14)
+	content_label.add_theme_color_override("font_color", Color("#dce5ef"))
+	content_label.add_theme_constant_override("line_spacing", 5)
+	content_scroll.add_child(content_label)
 	var back_button := _make_button(back_caption, Color("#f5a623"))
 	back_button.pressed.connect(_show_career_dashboard)
 	section_panel.add_child(back_button)
