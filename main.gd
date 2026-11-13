@@ -61,6 +61,9 @@ var throttle_down := false
 var shift_cooldown := 0.0
 var race_time := 0.0
 var personal_bests: Dictionary = {}
+var race_history: Array = []
+var current_win_streak := 0
+var best_win_streak := 0
 var career_race := false
 var career_wins := 0
 var career_losses := 0
@@ -313,6 +316,10 @@ func _show_career_dashboard() -> void:
 	_add_section_label("Wins: %d     Losses: %d" % [career_wins, career_losses])
 	_add_section_label("Cash: $%s     Reputation: %d" % [str(career_cash), career_reputation])
 	_add_section_label("LAST RESULT  |  " + last_result)
+	var history_button := _make_button("RACE HISTORY", Color("#34485d"))
+	history_button.add_theme_color_override("font_color", Color.WHITE)
+	history_button.pressed.connect(_show_race_history)
+	section_panel.add_child(history_button)
 	var profile_button := _make_button("DRIVER PROFILE", Color("#34485d"))
 	profile_button.add_theme_color_override("font_color", Color.WHITE)
 	profile_button.pressed.connect(_show_driver_profile)
@@ -576,9 +583,12 @@ func _select_car(car_name: String) -> void:
 
 func _event_catalog() -> Array:
 	return [
+		{"id": "eighth_mile", "name": "Eighth-Mile Dash", "distance": 201.0, "reward": 300, "rival_speed": 232.0, "description": "A short explosive sprint. Launch reaction and acceleration decide the winner."},
 		{"id": "quarter_mile", "name": "Quarter-Mile Sprint", "distance": 402.0, "reward": 500, "rival_speed": 238.0, "description": "Classic drag race. A balanced test of launch and shifting."},
-		{"id": "half_mile", "name": "Half-Mile Challenge", "distance": 804.0, "reward": 850, "rival_speed": 245.0, "description": "Longer run. Top speed and clean gear changes matter."},
-		{"id": "top_speed", "name": "Top Speed Shootout", "distance": 1000.0, "reward": 1200, "rival_speed": 252.0, "description": "The longest event with the toughest rival pace."}
+		{"id": "pro_quarter", "name": "Pro Quarter-Mile", "distance": 402.0, "reward": 900, "rival_speed": 247.0, "description": "A tougher quarter-mile event with a stronger rival field."},
+		{"id": "half_mile", "name": "Half-Mile Challenge", "distance": 804.0, "reward": 1200, "rival_speed": 250.0, "description": "Longer run. Top speed and clean gear changes matter."},
+		{"id": "top_speed", "name": "Top Speed Shootout", "distance": 1000.0, "reward": 1600, "rival_speed": 255.0, "description": "A high-speed test against experienced drivers."},
+		{"id": "mile_run", "name": "One-Mile Showdown", "distance": 1609.0, "reward": 2500, "rival_speed": 260.0, "description": "The ultimate endurance drag event. Hold speed and shift cleanly."}
 	]
 
 func _get_selected_event() -> Dictionary:
@@ -623,6 +633,23 @@ func _select_event(event_id: String) -> void:
 
 func _show_calendar() -> void:
 	_show_event_selection()
+
+func _show_race_history() -> void:
+	var body := "RECENT RACE HISTORY\n\n"
+	var total := race_history.size()
+	body += "RECORDED RACES  |  %d / 30\n" % total
+	body += "CAREER WIN STREAK  |  %d\n" % current_win_streak
+	body += "BEST WIN STREAK  |  %d\n\n" % best_win_streak
+	if race_history.is_empty():
+		body += "No races recorded yet. Complete a race to start your history."
+	else:
+		for index in range(race_history.size()):
+			var entry: Dictionary = race_history[index]
+			body += "%d. %s  |  %s\n" % [index + 1, str(entry.get("result", "UNKNOWN")), str(entry.get("event", "Race"))]
+			body += "Opponent: %s  •  Time: %.2f sec\n" % [str(entry.get("opponent", "Unknown")), float(entry.get("time", 0.0))]
+			body += "Distance: %d m  •  Prize: $%s  •  %s\n" % [int(entry.get("distance", 0)), str(entry.get("prize", 0)), str(entry.get("mode", "Career"))]
+			body += "%s\n\n" % str(entry.get("date", ""))
+	_show_subpage("RACE HISTORY", body, "BACK TO CAREER")
 
 func _show_driver_profile() -> void:
 	var total_races := career_wins + career_losses
@@ -1033,6 +1060,20 @@ func _finish_race() -> void:
 	var new_personal_best := previous_best <= 0.0 or race_time < previous_best
 	if new_personal_best:
 		personal_bests[record_key] = race_time
+	var race_prize := race_reward if was_career_race and won else 0
+	race_history.push_front({
+		"event": race_event_name,
+		"opponent": rival_name,
+		"result": "WIN" if won else "LOSS",
+		"time": race_time,
+		"distance": int(race_distance),
+		"prize": race_prize,
+		"mode": "Career" if was_career_race else "Quick Race",
+		"season": season_number if was_career_race else 0,
+		"date": Time.get_datetime_string_from_system()
+	})
+	while race_history.size() > 30:
+		race_history.pop_back()
 	race_finished = true
 	last_xp_earned = 0
 	last_level_up = false
@@ -1046,11 +1087,14 @@ func _finish_race() -> void:
 		_update_sponsor_contract(won)
 		if won:
 			career_wins += 1
+			current_win_streak += 1
+			best_win_streak = maxi(best_win_streak, current_win_streak)
 			career_cash += race_reward
 			career_reputation += 10
 			last_result = "Victory vs " + rival_name
 		else:
 			career_losses += 1
+			current_win_streak = 0
 			last_result = "Defeat vs " + rival_name
 		career_race = false
 		_check_achievements(new_personal_best)
@@ -1176,6 +1220,9 @@ func _load_career_save() -> void:
 	achievements = save.get_value("career", "achievements", {})
 	rival_records = save.get_value("career", "rival_records", {})
 	personal_bests = save.get_value("career", "personal_bests", {})
+	race_history = save.get_value("career", "race_history", [])
+	current_win_streak = int(save.get_value("career", "current_win_streak", 0))
+	best_win_streak = int(save.get_value("career", "best_win_streak", 0))
 	selected_event_id = str(save.get_value("career", "selected_event_id", "quarter_mile"))
 	race_event_name = str(_get_selected_event()["name"])
 	last_result = str(save.get_value("career", "last_result", "No races completed"))
@@ -1215,6 +1262,9 @@ func _save_career() -> void:
 	save.set_value("career", "achievements", achievements)
 	save.set_value("career", "rival_records", rival_records)
 	save.set_value("career", "personal_bests", personal_bests)
+	save.set_value("career", "race_history", race_history)
+	save.set_value("career", "current_win_streak", current_win_streak)
+	save.set_value("career", "best_win_streak", best_win_streak)
 	save.set_value("career", "selected_event_id", selected_event_id)
 	save.set_value("career", "last_result", last_result)
 	save.set_value("garage", "owned_cars", owned_cars)
