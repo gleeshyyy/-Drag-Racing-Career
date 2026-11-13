@@ -6,7 +6,7 @@ const screen=document.getElementById('screen');
 let state=load();
 function load(){try{const s=JSON.parse(localStorage.getItem(STORE_KEY));if(s){Object.assign(s,{condition:100,bestET:null,sponsor:null,sponsorProgress:0,childSupport:0,car:'Starter Coupe',carPower:180,ownedCars:['Starter Coupe'],history:[],eventWins:0},s);return s}return null}catch{return null}}
 function save(){localStorage.setItem(STORE_KEY,JSON.stringify(state));document.getElementById('header-save').textContent=state?state.driver.toUpperCase()+' · WEEK '+state.week:'NO ACTIVE CAREER'}
-function money(n){return '}
+function money(n){return '$'+Number(n).toLocaleString('en-US')}
 function go(view){if(view==='home')return renderHome();if(view==='create')return renderCreate();if(!state)return renderHome();({dashboard:renderDashboard,racing:renderRacing,garage:renderGarage,management:renderManagement,story:renderStory}[view]||renderDashboard)()}
 function renderHome(){save();screen.innerHTML=`
 <section class="hero"><div class="hero-content"><div class="eyebrow">THE STREETS DON'T GIVE SECOND CHANCES</div><h1>DRAGLESS <em>RIVALRY</em></h1><p>One bad month. One last shot. Build a racing career from nothing, earn respect on the strip, and turn a broken start into a legend.</p><div class="hero-actions">${state?'<button class="button amber" data-go="dashboard">CONTINUE CAREER</button>':''}<button class="button primary" data-go="create">${state?'NEW CAREER':'START YOUR STORY'}</button></div></div></section>
