@@ -57,6 +57,7 @@ var career_reputation := 0
 var last_result := "No races completed"
 var owned_cars: Array = ["Street Compact"]
 var active_car := "Street Compact"
+var car_upgrades: Dictionary = {}
 var car_max_speed := 290.0
 var car_acceleration := 23.0
 var garage_return_to_career := false
@@ -299,14 +300,23 @@ func _car_catalog() -> Array:
 	]
 
 func _apply_active_car() -> void:
+	var selected_car: Dictionary = {}
 	for car in _car_catalog():
 		if str(car["name"]) == active_car:
-			car_max_speed = float(car["speed"])
-			car_acceleration = float(car["acceleration"])
-			return
-	active_car = "Street Compact"
-	car_max_speed = 290.0
-	car_acceleration = 23.0
+			selected_car = car
+			break
+	if selected_car.is_empty():
+		active_car = "Street Compact"
+		selected_car = _car_catalog()[0]
+	car_max_speed = float(selected_car["speed"])
+	car_acceleration = float(selected_car["acceleration"])
+	var upgrades: Dictionary = car_upgrades.get(active_car, {})
+	var engine_level := int(upgrades.get("Engine", 0))
+	var turbo_level := int(upgrades.get("Turbo", 0))
+	var transmission_level := int(upgrades.get("Transmission", 0))
+	var tyres_level := int(upgrades.get("Tyres", 0))
+	car_max_speed += engine_level * 5.0 + turbo_level * 7.0 + transmission_level * 9.0
+	car_acceleration += engine_level * 1.5 + turbo_level * 2.0 + tyres_level * 1.0
 
 func _show_garage() -> void:
 	menu_panel.hide()
@@ -336,6 +346,10 @@ func _show_garage() -> void:
 				car_button.pressed.connect(_buy_car.bind(car_name))
 		section_panel.add_child(car_button)
 		_add_section_label("%s  •  %d km/h  •  Acceleration %d" % [str(car["description"]), int(car["speed"]), int(car["acceleration"])])
+	var upgrades_button := _make_button("CAR UPGRADES", Color("#2675a8"))
+	upgrades_button.add_theme_color_override("font_color", Color.WHITE)
+	upgrades_button.pressed.connect(_show_upgrades)
+	section_panel.add_child(upgrades_button)
 	var back_button := _make_button("BACK", Color("#263545"))
 	back_button.add_theme_color_override("font_color", Color.WHITE)
 	if garage_return_to_career:
@@ -343,6 +357,59 @@ func _show_garage() -> void:
 	else:
 		back_button.pressed.connect(_show_menu)
 	section_panel.add_child(back_button)
+
+func _upgrade_catalog() -> Array:
+	return [
+		{"name": "Engine", "base_price": 1200, "effect": "+5 km/h and +1.5 acceleration per level"},
+		{"name": "Turbo", "base_price": 1600, "effect": "+7 km/h and +2 acceleration per level"},
+		{"name": "Transmission", "base_price": 1000, "effect": "+9 km/h per level"},
+		{"name": "Tyres", "base_price": 800, "effect": "+1 acceleration per level"}
+	]
+
+func _show_upgrades() -> void:
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	title_label.text = "CAR UPGRADES"
+	status_label.text = "%s  •  Cash: $%s" % [active_car, str(career_cash)]
+	_clear_section()
+	_add_section_label("UPGRADES ARE INSTALLED ON THIS CAR ONLY")
+	var upgrades: Dictionary = car_upgrades.get(active_car, {})
+	for part in _upgrade_catalog():
+		var part_name := str(part["name"])
+		var level := int(upgrades.get(part_name, 0))
+		var price := int(part["base_price"]) * (level + 1)
+		_add_section_label("%s  •  Level %d/3" % [part_name, level])
+		_add_section_label(str(part["effect"]))
+		var caption := "MAX LEVEL" if level >= 3 else "UPGRADE  •  $%s" % str(price)
+		var upgrade_button := _make_button(caption, Color("#2675a8") if level < 3 else Color("#34485d"))
+		upgrade_button.add_theme_color_override("font_color", Color.WHITE)
+		upgrade_button.disabled = level >= 3
+		upgrade_button.pressed.connect(_buy_upgrade.bind(part_name))
+		section_panel.add_child(upgrade_button)
+	var back_button := _make_button("BACK TO GARAGE", Color("#263545"))
+	back_button.add_theme_color_override("font_color", Color.WHITE)
+	back_button.pressed.connect(_show_garage)
+	section_panel.add_child(back_button)
+
+func _buy_upgrade(part_name: String) -> void:
+	var upgrades: Dictionary = car_upgrades.get(active_car, {})
+	var level := int(upgrades.get(part_name, 0))
+	if level >= 3:
+		return
+	for part in _upgrade_catalog():
+		if str(part["name"]) == part_name:
+			var price := int(part["base_price"]) * (level + 1)
+			if career_cash < price:
+				status_label.text = "Not enough cash. You need $%s more." % str(price - career_cash)
+				return
+			career_cash -= price
+			upgrades[part_name] = level + 1
+			car_upgrades[active_car] = upgrades
+			_apply_active_car()
+			_save_career()
+			_show_upgrades()
+			return
 
 func _buy_car(car_name: String) -> void:
 	for car in _car_catalog():
@@ -493,6 +560,7 @@ func _load_career_save() -> void:
 	last_result = str(save.get_value("career", "last_result", "No races completed"))
 	owned_cars = save.get_value("garage", "owned_cars", ["Street Compact"])
 	active_car = str(save.get_value("garage", "active_car", "Street Compact"))
+	car_upgrades = save.get_value("garage", "car_upgrades", {})
 	if not owned_cars.has("Street Compact"):
 		owned_cars.append("Street Compact")
 	if not owned_cars.has(active_car):
@@ -508,6 +576,7 @@ func _save_career() -> void:
 	save.set_value("career", "last_result", last_result)
 	save.set_value("garage", "owned_cars", owned_cars)
 	save.set_value("garage", "active_car", active_car)
+	save.set_value("garage", "car_upgrades", car_upgrades)
 	var error := save.save("user://career_save.cfg")
 	if error != OK:
 		push_warning("Could not save career progress.")
