@@ -1424,6 +1424,7 @@ func _update_national_season(player_won: bool) -> void:
 			national_season_message = "NATIONAL SEASON %d CHAMPION: %s. The next season awaits." % [national_season_number,last_national_champion]
 		if last_national_champion == "YOU":
 			international_pathway_unlocked = true
+			superstar_pathway_unlocked = true
 		national_season_number += 1
 		national_season_points = {}
 		national_events_completed = []
@@ -2322,9 +2323,21 @@ func _show_story_missions() -> void:
 					var international_story_button := _make_button("ENTER INTERNATIONAL CHAMPIONSHIP", Color("#c17a28"))
 					international_story_button.pressed.connect(_show_international_championship)
 					section_panel.add_child(international_story_button)
-				else:
+				elif story_stage == 18:
 					_add_section_label("CHAPTER 5 COMPLETE  |  WORLD CHAMPION")
 					_add_section_label("You have conquered the international circuit and claimed the world title.")
+					_add_section_label("NEXT  |  The Legends Racing Council is preparing an invitation.")
+				else:
+					_add_section_label("CHAPTER 6  |  THE LEGEND")
+					if story_stage == 19:
+						_add_section_label("Five legendary drivers stand between you and immortality.")
+						_add_section_label("OBJECTIVE  |  Win the six-event Global Legends championship.")
+						var legends_button := _make_button("ENTER SUPERSTAR CHAMPIONSHIP",Color("#d6a52d"))
+						legends_button.pressed.connect(_show_superstar_championship)
+						section_panel.add_child(legends_button)
+					else:
+						_add_section_label("CHAPTER 6 COMPLETE  |  GLOBAL LEGEND")
+						_add_section_label("Your name is now part of drag racing history.")
 	if last_story_message != "":
 		_add_section_label(last_story_message)
 	var back_button := _make_button("BACK TO CAREER", Color("#263545"))
