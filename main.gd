@@ -116,6 +116,7 @@ var selected_professional_event_id := "pro_402"
 var professional_rival_names := ["Elena Cross", "Viktor Kane", "Nadia Stone", "Marcus Vale"]
 var professional_rival_records: Dictionary = {}
 var professional_team_points: Dictionary = {}
+var last_professional_team_points: Dictionary = {}
 var national_pathway_unlocked := false
 var active_jasper_job := ""
 var jasper_job_progress := 0
@@ -187,6 +188,7 @@ var track_title_label: Label
 func _ready() -> void:
 	_load_career_save()
 	_ensure_rival_records()
+	_ensure_professional_rival_records()
 	_build_interface()
 	_show_menu()
 
@@ -1101,6 +1103,12 @@ func _enter_professional_event(event_id: String) -> void:
 			_start_race()
 			return
 
+func _ensure_professional_rival_records() -> void:
+	for index in range(professional_rival_names.size()):
+		var name := str(professional_rival_names[index])
+		if not professional_rival_records.has(name):
+			professional_rival_records[name] = {"wins":0,"losses":0,"rating":68 + index * 5,"car":"Turbo Coupe" if index < 2 else "Muscle V8","upgrade_level":index + 2}
+
 func _update_professional_rival_results(player_won: bool) -> void:
 	if not professional_rival_records.has(rival_name):
 		professional_rival_records[rival_name] = {"wins":0,"losses":0,"rating":68 + professional_rival_names.find(rival_name) * 5}
@@ -1159,6 +1167,7 @@ func _update_professional_season(player_won: bool) -> void:
 			_add_career_notification("PROFESSIONAL CHAMPION: National Championship pathway unlocked.")
 		else:
 			professional_season_message = "PRO SEASON %d CHAMPION: %s. Keep competing for the title." % [professional_season_number, last_professional_champion]
+		last_professional_team_points = professional_team_points.duplicate(true)
 		professional_season_number += 1
 		professional_season_points = {}
 		professional_events_completed = []
@@ -1185,11 +1194,16 @@ func _show_professional_standings() -> void:
 	_show_subpage("PROFESSIONAL STANDINGS", body, "BACK TO CAREER")
 
 func _show_professional_team_standings() -> void:
+	var display_teams: Dictionary = professional_team_points
+	var heading := "CURRENT TEAM CHAMPIONSHIP"
+	if display_teams.is_empty() and not last_professional_team_points.is_empty():
+		display_teams = last_professional_team_points
+		heading = "LAST COMPLETED TEAM CHAMPIONSHIP"
 	var rows: Array = []
-	for team_name in professional_team_points.keys():
-		rows.append({"name":str(team_name),"points":int(professional_team_points[team_name])})
+	for team_name in display_teams.keys():
+		rows.append({"name":str(team_name),"points":int(display_teams[team_name])})
 	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
-	var body := "PROFESSIONAL TEAM CHAMPIONSHIP\n\n"
+	var body := heading + "\n\n"
 	if rows.is_empty():
 		body += "No team points recorded yet. Enter a professional event to begin."
 	else:
@@ -1997,7 +2011,6 @@ func _start_race() -> void:
 		if career_cash < entry_fee:
 			career_race = false
 			story_race_active = false
-			professional_circuit_active = false
 			race_countdown_active = false
 			status_label.text = "You need $%s for this event's entry fee." % str(entry_fee)
 			if professional_circuit_active:
@@ -2038,7 +2051,11 @@ func _start_race() -> void:
 			rival_name = str(professional_rival_names[(professional_events_completed.size() + professional_season_number - 1) % professional_rival_names.size()])
 		else:
 			rival_name = ("Viktor Kane" if story_stage >= 5 and story_stage <= 7 else "Elena Cross") if story_race_active else (rival_challenge_name if rival_challenge_active else str(rival_names[(career_wins + career_losses) % rival_names.size()]))
-		var selected_record: Dictionary = rival_records.get(rival_name, {})
+		var selected_record: Dictionary = professional_rival_records.get(rival_name, {}) if professional_circuit_active else rival_records.get(rival_name, {})
+		if professional_circuit_active and selected_record.is_empty():
+			var pro_index := professional_rival_names.find(rival_name)
+			selected_record = {"rating": 68 + pro_index * 5, "upgrade_level": pro_index + 2, "car": "Turbo Coupe" if pro_index < 2 else "Muscle V8"}
+			professional_rival_records[rival_name] = selected_record
 		var rival_car := str(selected_record.get("car", "Street Compact"))
 		var rival_upgrades := int(selected_record.get("upgrade_level", 0))
 		var rival_rating := int(selected_record.get("rating", 50))
@@ -2392,6 +2409,7 @@ func _load_career_save() -> void:
 	last_professional_season_number = int(save.get_value("career", "last_professional_season_number", 0))
 	professional_rival_records = save.get_value("career", "professional_rival_records", {})
 	professional_team_points = save.get_value("career", "professional_team_points", {})
+	last_professional_team_points = save.get_value("career", "last_professional_team_points", {})
 	national_pathway_unlocked = bool(save.get_value("career", "national_pathway_unlocked", false))
 	last_story_message = str(save.get_value("career", "last_story_message", ""))
 	owned_cars = save.get_value("garage", "owned_cars", ["Street Compact"])
@@ -2475,6 +2493,7 @@ func _save_career() -> void:
 	save.set_value("career", "last_professional_season_number", last_professional_season_number)
 	save.set_value("career", "professional_rival_records", professional_rival_records)
 	save.set_value("career", "professional_team_points", professional_team_points)
+	save.set_value("career", "last_professional_team_points", last_professional_team_points)
 	save.set_value("career", "national_pathway_unlocked", national_pathway_unlocked)
 	save.set_value("career", "last_story_message", last_story_message)
 	save.set_value("garage", "owned_cars", owned_cars)
