@@ -42,6 +42,11 @@ class DragTrack extends Control:
 const TRACK_LENGTH := 402.0
 const ACCELERATION := 23.0
 const MAX_SPEED := 290.0
+var race_distance := 402.0
+var race_reward := 500
+var rival_target_speed := 238.0
+var selected_event_id := "quarter_mile"
+var race_event_name := "Quarter-Mile Sprint"
 
 var race_active := false
 var race_finished := false
@@ -86,6 +91,7 @@ var race_panel: VBoxContainer
 var menu_panel: VBoxContainer
 var section_panel: VBoxContainer
 var track_visual: DragTrack
+var track_title_label: Label
 
 func _ready() -> void:
 	_load_career_save()
@@ -104,12 +110,11 @@ func _process(delta: float) -> void:
 	else:
 		player_speed = maxf(0.0, player_speed - 4.0 * delta)
 		rpm = maxf(900.0, rpm - 1800.0 * delta)
-	var rival_target := 238.0
-	rival_speed = minf(rival_target, rival_speed + 19.0 * delta)
+	rival_speed = minf(rival_target_speed, rival_speed + 19.0 * delta)
 	player_distance += player_speed / 3.6 * delta
 	rival_distance += rival_speed / 3.6 * delta
 	_update_hud()
-	if player_distance >= TRACK_LENGTH or rival_distance >= TRACK_LENGTH:
+	if player_distance >= race_distance or rival_distance >= race_distance:
 		_finish_race()
 
 func _build_interface() -> void:
@@ -184,12 +189,12 @@ func _build_interface() -> void:
 	var track_box := VBoxContainer.new()
 	track_box.add_theme_constant_override("separation", 9)
 	track_card.add_child(track_box)
-	var track_title := Label.new()
-	track_title.text = "NIGHT SPRINT  /  1⁄4 MILE"
+	track_title_label = Label.new()
+	track_title_label.text = "NIGHT SPRINT  /  1⁄4 MILE"
 	track_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	track_title.add_theme_font_size_override("font_size", 14)
 	track_title.add_theme_color_override("font_color", Color("#f5a623"))
-	track_box.add_child(track_title)
+	track_box.add_child(track_title_label)
 	track_visual = DragTrack.new()
 	track_visual.custom_minimum_size = Vector2(0, 190)
 	track_box.add_child(track_visual)
@@ -260,14 +265,19 @@ func _show_career_dashboard() -> void:
 	title_label.text = "CAREER DASHBOARD"
 	status_label.text = "SEASON 1  •  ROOKIE DIVISION"
 	_clear_section()
-	_add_section_label("NEXT EVENT  |  WEEK 1")
-	_add_section_label("Quarter-Mile Sprint  •  402 metres")
-	var event_button := _make_button("ENTER NEXT EVENT", Color("#f5a623"))
+	var event: Dictionary = _get_selected_event()
+	_add_section_label("SELECTED EVENT  |  WEEK 1")
+	_add_section_label("%s  •  %d metres  •  Prize: $%s" % [race_event_name, int(event["distance"]), str(event["reward"])])
+	var event_button := _make_button("ENTER SELECTED EVENT", Color("#f5a623"))
 	event_button.pressed.connect(func():
 		career_race = true
 		_start_race()
 	)
 	section_panel.add_child(event_button)
+	var choose_event_button := _make_button("SELECT RACE EVENT", Color("#2675a8"))
+	choose_event_button.add_theme_color_override("font_color", Color.WHITE)
+	choose_event_button.pressed.connect(_show_event_selection)
+	section_panel.add_child(choose_event_button)
 	_add_section_label("CAREER RECORD")
 	_add_section_label("Wins: %d     Losses: %d" % [career_wins, career_losses])
 	_add_section_label("Cash: $%s     Reputation: %d" % [str(career_cash), career_reputation])
@@ -498,8 +508,55 @@ func _select_car(car_name: String) -> void:
 		_save_career()
 		_show_garage()
 
+func _event_catalog() -> Array:
+	return [
+		{"id": "quarter_mile", "name": "Quarter-Mile Sprint", "distance": 402.0, "reward": 500, "rival_speed": 238.0, "description": "Classic drag race. A balanced test of launch and shifting."},
+		{"id": "half_mile", "name": "Half-Mile Challenge", "distance": 804.0, "reward": 850, "rival_speed": 245.0, "description": "Longer run. Top speed and clean gear changes matter."},
+		{"id": "top_speed", "name": "Top Speed Shootout", "distance": 1000.0, "reward": 1200, "rival_speed": 252.0, "description": "The longest event with the toughest rival pace."}
+	]
+
+func _get_selected_event() -> Dictionary:
+	for event in _event_catalog():
+		if str(event["id"]) == selected_event_id:
+			return event
+	return _event_catalog()[0]
+
+func _show_event_selection() -> void:
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	title_label.text = "RACE EVENTS"
+	status_label.text = "Choose an event. Longer races offer larger prizes."
+	_clear_section()
+	for event in _event_catalog():
+		var event_id := str(event["id"])
+		var event_name := str(event["name"])
+		var distance := int(event["distance"])
+		var reward := int(event["reward"])
+		_add_section_label("%s  •  %d m  •  Prize $%s" % [event_name, distance, str(reward)])
+		_add_section_label(str(event["description"]))
+		var caption := "SELECTED  •  " + event_name if event_id == selected_event_id else "SELECT  •  " + event_name
+		var event_button := _make_button(caption, Color("#f5a623") if event_id == selected_event_id else Color("#34485d"))
+		if event_id != selected_event_id:
+			event_button.add_theme_color_override("font_color", Color.WHITE)
+		event_button.pressed.connect(_select_event.bind(event_id))
+		section_panel.add_child(event_button)
+	var back_button := _make_button("BACK TO CAREER", Color("#263545"))
+	back_button.add_theme_color_override("font_color", Color.WHITE)
+	back_button.pressed.connect(_show_career_dashboard)
+	section_panel.add_child(back_button)
+
+func _select_event(event_id: String) -> void:
+	for event in _event_catalog():
+		if str(event["id"]) == event_id:
+			selected_event_id = event_id
+			race_event_name = str(event["name"])
+			_save_career()
+			_show_event_selection()
+			return
+
 func _show_calendar() -> void:
-	_show_subpage("RACE CALENDAR", "WEEK 1  •  ROOKIE DIVISION\n\n1. Quarter-Mile Sprint — 402 m\n2. Street Sprint — coming soon\n3. Circuit Challenge — coming soon", "BACK TO CAREER")
+	_show_event_selection()
 
 func _show_standings() -> void:
 	var text := "ROOKIE CHAMPIONSHIP\n\n1. You — %d points\n2. %s — %d points\n3. Maya Brooks — 0 points\n4. Jaxon Reed — 0 points\n5. Andre Silva — 0 points" % [career_wins * 10, rival_name, career_wins * 8]
@@ -545,6 +602,17 @@ func _add_section_label(caption: String) -> void:
 func _start_race() -> void:
 	section_panel.hide()
 	menu_panel.hide()
+	if career_race:
+		var event: Dictionary = _get_selected_event()
+		race_distance = float(event["distance"])
+		race_reward = int(event["reward"])
+		rival_target_speed = float(event["rival_speed"])
+		race_event_name = str(event["name"])
+	else:
+		race_distance = TRACK_LENGTH
+		race_reward = 0
+		rival_target_speed = 238.0
+		race_event_name = "Quick Race"
 	race_active = true
 	race_finished = false
 	player_distance = 0.0
@@ -559,7 +627,9 @@ func _start_race() -> void:
 	race_panel.show()
 	title_label.text = "MAKE YOUR MOVE"
 	rival_name = rival_names[(career_wins + career_losses) % rival_names.size()]
-	status_label.text = "You vs %s  •  Beat them to the finish." % rival_name
+	if is_instance_valid(track_title_label):
+		track_title_label.text = "%s  /  %d M" % [race_event_name.to_upper(), int(race_distance)]
+	status_label.text = "You vs %s  •  Beat them to %d metres." % [rival_name, int(race_distance)]
 	_update_hud()
 
 func _shift_gear() -> void:
@@ -576,24 +646,26 @@ func _shift_gear() -> void:
 
 func _update_hud() -> void:
 	speed_label.text = "%d km/h" % int(player_speed)
-	distance_label.text = "%d / 402 m" % int(minf(player_distance, TRACK_LENGTH))
+	distance_label.text = "%d / %d m" % [int(minf(player_distance, race_distance)), int(race_distance)]
 	rpm_label.text = "RPM  %d" % int(rpm)
 	gear_label.text = "GEAR  %d" % gear
-	player_bar.value = minf(player_distance, TRACK_LENGTH)
-	rival_bar.value = minf(rival_distance, TRACK_LENGTH)
+	player_bar.max_value = race_distance
+	player_bar.value = minf(player_distance, race_distance)
+	rival_bar.max_value = race_distance
+	rival_bar.value = minf(rival_distance, race_distance)
 	track_visual.set_player_paint(Color(str(car_paints.get(active_car, "#f5a623"))))
-	track_visual.set_progress(player_distance / TRACK_LENGTH, rival_distance / TRACK_LENGTH)
+	track_visual.set_progress(player_distance / race_distance, rival_distance / race_distance)
 
 func _finish_race() -> void:
 	race_active = false
 	throttle_down = false
 	var was_career_race := career_race
-	var won := player_distance >= TRACK_LENGTH and player_distance >= rival_distance
+	var won := player_distance >= race_distance and player_distance >= rival_distance
 	race_finished = true
 	if was_career_race:
 		if won:
 			career_wins += 1
-			career_cash += 500
+			career_cash += race_reward
 			career_reputation += 10
 			last_result = "Victory vs " + rival_name
 		else:
@@ -623,6 +695,8 @@ func _load_career_save() -> void:
 	career_losses = int(save.get_value("career", "losses", 0))
 	career_cash = int(save.get_value("career", "cash", 0))
 	career_reputation = int(save.get_value("career", "reputation", 0))
+	selected_event_id = str(save.get_value("career", "selected_event_id", "quarter_mile"))
+	race_event_name = str(_get_selected_event()["name"])
 	last_result = str(save.get_value("career", "last_result", "No races completed"))
 	owned_cars = save.get_value("garage", "owned_cars", ["Street Compact"])
 	active_car = str(save.get_value("garage", "active_car", "Street Compact"))
@@ -646,6 +720,7 @@ func _save_career() -> void:
 	save.set_value("career", "losses", career_losses)
 	save.set_value("career", "cash", career_cash)
 	save.set_value("career", "reputation", career_reputation)
+	save.set_value("career", "selected_event_id", selected_event_id)
 	save.set_value("career", "last_result", last_result)
 	save.set_value("garage", "owned_cars", owned_cars)
 	save.set_value("garage", "active_car", active_car)
