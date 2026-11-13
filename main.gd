@@ -2692,8 +2692,14 @@ func _start_race() -> void:
 	menu_panel.hide()
 	race_panel.hide()
 	if career_race:
-		var event: Dictionary = _get_international_event() if international_championship_active else (_get_national_event() if national_championship_active else (_get_professional_event() if professional_circuit_active else _get_selected_event()))
-		var entry_fee := int(event.get("entry_fee", _event_entry_fee(selected_event_id))) if (professional_circuit_active or national_championship_active or international_championship_active) else _event_entry_fee(selected_event_id)
+		var event: Dictionary = _get_superstar_event() if superstar_championship_active else (_get_international_event() if international_championship_active else (_get_national_event() if national_championship_active else (_get_professional_event() if professional_circuit_active else _get_selected_event())))
+		var entry_fee := int(event.get("entry_fee", _event_entry_fee(selected_event_id))) if (professional_circuit_active or national_championship_active or international_championship_active or superstar_championship_active) else _event_entry_fee(selected_event_id)
+		if superstar_championship_active and not (superstar_pathway_unlocked and career_wins >= 60 and _driver_level() >= 20 and career_reputation >= 750):
+			career_race = false
+			superstar_championship_active = false
+			race_countdown_active = false
+			_show_superstar_pathway()
+			return
 		if international_championship_active and not (international_pathway_unlocked and career_wins >= 40 and _driver_level() >= 15 and career_reputation >= 500):
 			career_race = false
 			international_championship_active = false
@@ -2762,7 +2768,9 @@ func _start_race() -> void:
 	_roll_track_condition()
 	throttle_down = false
 	if career_race:
-		if international_championship_active:
+		if superstar_championship_active:
+			rival_name = str(superstar_rival_names[(superstar_events_completed.size() + superstar_season_number - 1) % superstar_rival_names.size()])
+		elif international_championship_active:
 			rival_name = str(international_rival_names[(international_events_completed.size() + international_season_number - 1) % international_rival_names.size()])
 		elif national_championship_active:
 			rival_name = str(national_rival_names[(national_events_completed.size() + national_season_number - 1) % national_rival_names.size()])
@@ -2770,7 +2778,10 @@ func _start_race() -> void:
 			rival_name = str(professional_rival_names[(professional_events_completed.size() + professional_season_number - 1) % professional_rival_names.size()])
 		else:
 			rival_name = ("Viktor Kane" if story_stage >= 5 and story_stage <= 7 else "Elena Cross") if story_race_active else (rival_challenge_name if rival_challenge_active else str(rival_names[(career_wins + career_losses) % rival_names.size()]))
-		var selected_record: Dictionary = international_rival_records.get(rival_name, {}) if international_championship_active else (national_rival_records.get(rival_name, {}) if national_championship_active else (professional_rival_records.get(rival_name, {}) if professional_circuit_active else rival_records.get(rival_name, {})))
+		var selected_record: Dictionary = superstar_rival_records.get(rival_name, {}) if superstar_championship_active else (international_rival_records.get(rival_name, {}) if international_championship_active else (national_rival_records.get(rival_name, {}) if national_championship_active else (professional_rival_records.get(rival_name, {}) if professional_circuit_active else rival_records.get(rival_name, {}))))
+		if superstar_championship_active and selected_record.is_empty():
+			_ensure_superstar_rivals()
+			selected_record = superstar_rival_records.get(rival_name,{})
 		if international_championship_active and selected_record.is_empty():
 			_ensure_international_rival_records()
 			selected_record = international_rival_records.get(rival_name, {})
@@ -2792,7 +2803,7 @@ func _start_race() -> void:
 		elif rival_car == "Muscle V8":
 			car_speed_bonus = 12.0
 			car_acceleration_bonus = 2.4
-		var race_event_data: Dictionary = _get_international_event() if international_championship_active else (_get_national_event() if national_championship_active else (_get_professional_event() if professional_circuit_active else _get_selected_event()))
+		var race_event_data: Dictionary = _get_superstar_event() if superstar_championship_active else (_get_international_event() if international_championship_active else (_get_national_event() if national_championship_active else (_get_professional_event() if professional_circuit_active else _get_selected_event())))
 		rival_target_speed = float(race_event_data["rival_speed"]) + float(rival_rating - 50) * 0.22 + float(rival_upgrades) * 0.8 + car_speed_bonus
 		rival_acceleration = 19.0 + float(rival_upgrades) * 0.35 + car_acceleration_bonus + float(rival_rating - 50) * 0.025
 	else:
@@ -2913,7 +2924,9 @@ func _finish_race() -> void:
 		last_xp_earned = 100 if won else 50
 		career_xp += last_xp_earned
 		last_level_up = _driver_level() > old_level
-		if international_championship_active:
+		if superstar_championship_active:
+			_update_superstar_season(won)
+		elif international_championship_active:
 			_update_international_rival_results(won)
 			_update_international_season(won)
 		elif national_championship_active:
@@ -2964,6 +2977,7 @@ func _finish_race() -> void:
 		professional_circuit_active = false
 		national_championship_active = false
 		international_championship_active = false
+		superstar_championship_active = false
 		_check_achievements(new_personal_best)
 		_save_career()
 	else:
@@ -3002,6 +3016,8 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 			_add_section_label(national_season_message)
 		if international_season_message != "":
 			_add_section_label(international_season_message)
+		if superstar_season_message != "":
+			_add_section_label(superstar_season_message)
 		if last_sponsor_message != "":
 			_add_section_label(last_sponsor_message)
 		if last_achievement_message != "":
