@@ -119,6 +119,19 @@ var professional_rival_records: Dictionary = {}
 var professional_team_points: Dictionary = {}
 var last_professional_team_points: Dictionary = {}
 var national_pathway_unlocked := false
+var national_championship_active := false
+var selected_national_event_id := "nat_402"
+var national_season_number := 1
+var national_season_points: Dictionary = {}
+var national_events_completed: Array = []
+var national_rival_names := ["Darius King", "Sofia Reyes", "Andre Mitchell", "Talia Brooks"]
+var national_rival_records: Dictionary = {}
+var national_team_points: Dictionary = {}
+var last_national_points: Dictionary = {}
+var last_national_team_points: Dictionary = {}
+var last_national_champion := ""
+var last_national_season_number := 0
+var national_season_message := ""
 var active_jasper_job := ""
 var jasper_job_progress := 0
 var completed_jasper_jobs: Array = []
@@ -429,9 +442,17 @@ func _show_career_dashboard() -> void:
 		team_standings_button.pressed.connect(_show_professional_team_standings)
 		section_panel.add_child(team_standings_button)
 	if national_pathway_unlocked:
-		var national_button := _make_button("NATIONAL CHAMPIONSHIP PATHWAY", Color("#c17a28"))
-		national_button.pressed.connect(_show_national_pathway)
+		var national_button := _make_button("NATIONAL CHAMPIONSHIP", Color("#c17a28"))
+		national_button.pressed.connect(_show_national_championship)
 		section_panel.add_child(national_button)
+		var national_standings_button := _make_button("NATIONAL STANDINGS", Color("#34485d"))
+		national_standings_button.add_theme_color_override("font_color", Color.WHITE)
+		national_standings_button.pressed.connect(_show_national_standings)
+		section_panel.add_child(national_standings_button)
+		var national_teams_button := _make_button("NATIONAL TEAM CHAMPIONSHIP", Color("#34485d"))
+		national_teams_button.add_theme_color_override("font_color", Color.WHITE)
+		national_teams_button.pressed.connect(_show_national_team_standings)
+		section_panel.add_child(national_teams_button)
 	var teams_button := _make_button("RACING TEAMS & CONTRACTS", Color("#2675a8"))
 	teams_button.add_theme_color_override("font_color", Color.WHITE)
 	teams_button.pressed.connect(_show_team_management)
@@ -1188,6 +1209,169 @@ func _update_professional_season(player_won: bool) -> void:
 		professional_team_points = {}
 		_save_career()
 
+func _national_event_catalog() -> Array:
+	return [
+		{"id":"nat_402","name":"National Quarter-Mile Championship","distance":402.0,"reward":5000,"rival_speed":286.0,"entry_fee":1200,"points":15},
+		{"id":"nat_804","name":"National Half-Mile Grand Prix","distance":804.0,"reward":6500,"rival_speed":291.0,"entry_fee":1500,"points":15},
+		{"id":"nat_1000","name":"National Top Speed Masters","distance":1000.0,"reward":8000,"rival_speed":296.0,"entry_fee":1800,"points":18},
+		{"id":"nat_1609","name":"National Mile Endurance","distance":1609.0,"reward":10000,"rival_speed":300.0,"entry_fee":2200,"points":18},
+		{"id":"nat_201","name":"National Eighth-Mile Sprint","distance":201.0,"reward":6000,"rival_speed":294.0,"entry_fee":1400,"points":15},
+		{"id":"nat_final","name":"National Championship Final","distance":1609.0,"reward":18000,"rival_speed":308.0,"entry_fee":3000,"points":25}
+	]
+
+func _get_national_event() -> Dictionary:
+	for event in _national_event_catalog():
+		if str(event["id"]) == selected_national_event_id:
+			return event
+	return _national_event_catalog()[0]
+
+func _ensure_national_rival_records() -> void:
+	for index in range(national_rival_names.size()):
+		var name := str(national_rival_names[index])
+		if not national_rival_records.has(name):
+			national_rival_records[name] = {"wins":0,"losses":0,"rating":82 + index * 3,"car":"Muscle V8","upgrade_level":5 + index}
+
+func _show_national_championship() -> void:
+	var qualified := national_pathway_unlocked and career_wins >= 25 and _driver_level() >= 10 and career_reputation >= 300
+	if not qualified:
+		_show_national_pathway()
+		return
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	title_label.text = "NATIONAL CHAMPIONSHIP"
+	status_label.text = "NATIONAL DRAG ASSOCIATION  |  SEASON %d" % national_season_number
+	_clear_section()
+	_add_section_label("NATIONAL LICENCE  |  ENTRY APPROVED")
+	_add_section_label("SEASON PROGRESS  |  %d / %d events completed" % [national_events_completed.size(), _national_event_catalog().size()])
+	_add_section_label("TEAM  |  %s" % (current_team if current_team != "" else "INDEPENDENT"))
+	for event in _national_event_catalog():
+		var event_id := str(event["id"])
+		_add_section_label("%s  |  %d m  |  Prize $%s  |  Entry $%s  |  %d pts" % [str(event["name"]), int(event["distance"]), str(event["reward"]), str(event["entry_fee"]), int(event["points"])])
+		var completed := national_events_completed.has(event_id)
+		var event_button := _make_button(("COMPLETED  |  " if completed else "ENTER  |  ") + str(event["name"]), Color("#34485d") if completed else Color("#c17a28"))
+		event_button.disabled = completed
+		event_button.pressed.connect(_enter_national_event.bind(event_id))
+		section_panel.add_child(event_button)
+	var standings_button := _make_button("VIEW NATIONAL STANDINGS", Color("#2675a8"))
+	standings_button.add_theme_color_override("font_color", Color.WHITE)
+	standings_button.pressed.connect(_show_national_standings)
+	section_panel.add_child(standings_button)
+	var team_button := _make_button("VIEW TEAM CHAMPIONSHIP", Color("#34485d"))
+	team_button.add_theme_color_override("font_color", Color.WHITE)
+	team_button.pressed.connect(_show_national_team_standings)
+	section_panel.add_child(team_button)
+	var back_button := _make_button("BACK TO CAREER", Color("#263545"))
+	back_button.add_theme_color_override("font_color", Color.WHITE)
+	back_button.pressed.connect(_show_career_dashboard)
+	section_panel.add_child(back_button)
+
+func _enter_national_event(event_id: String) -> void:
+	if national_events_completed.has(event_id):
+		return
+	for event in _national_event_catalog():
+		if str(event["id"]) == event_id:
+			selected_national_event_id = event_id
+			national_championship_active = true
+			career_race = true
+			_start_race()
+			return
+
+func _update_national_rival_results(player_won: bool) -> void:
+	if not national_rival_records.has(rival_name):
+		_ensure_national_rival_records()
+	var opponent: Dictionary = national_rival_records.get(rival_name, {"wins":0,"losses":0,"rating":85})
+	if player_won:
+		opponent["losses"] = int(opponent.get("losses",0)) + 1
+	else:
+		opponent["wins"] = int(opponent.get("wins",0)) + 1
+		opponent["rating"] = mini(100, int(opponent.get("rating",85)) + 1)
+	national_rival_records[rival_name] = opponent
+	for name in national_rival_names:
+		if name == rival_name:
+			continue
+		var record: Dictionary = national_rival_records.get(name, {"wins":0,"losses":0,"rating":85})
+		if randf() < 0.6:
+			record["wins"] = int(record.get("wins",0)) + 1
+		else:
+			record["losses"] = int(record.get("losses",0)) + 1
+		national_rival_records[name] = record
+
+func _update_national_season(player_won: bool) -> void:
+	national_season_message = ""
+	if national_events_completed.has(selected_national_event_id):
+		national_season_message = "NATIONAL EVENT ALREADY COMPLETED — NO EXTRA POINTS"
+		return
+	var event := _get_national_event()
+	national_events_completed.append(selected_national_event_id)
+	var earned_points := int(event["points"]) if player_won else 4
+	national_season_points["YOU"] = int(national_season_points.get("YOU",0)) + earned_points
+	national_season_message = "NATIONAL CHAMPIONSHIP POINTS  |  +%d" % earned_points
+	var player_team := current_team if current_team != "" else "Independent"
+	national_team_points[player_team] = int(national_team_points.get(player_team,0)) + earned_points
+	for name in national_rival_names:
+		var rival_points := 15 if randf() < 0.6 else 5
+		national_season_points[name] = int(national_season_points.get(name,0)) + rival_points
+		var rival_team := "Apex Performance" if name == "Darius King" else ("Velocity Motorsport" if name == "Sofia Reyes" else ("National Racing Union" if name == "Andre Mitchell" else "International Elite"))
+		national_team_points[rival_team] = int(national_team_points.get(rival_team,0)) + rival_points
+	if national_events_completed.size() >= _national_event_catalog().size():
+		var rows: Array = []
+		for driver in ["YOU"] + national_rival_names:
+			rows.append({"name":driver,"points":int(national_season_points.get(driver,0))})
+		rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
+		last_national_champion = str(rows[0]["name"])
+		last_national_points = national_season_points.duplicate(true)
+		last_national_team_points = national_team_points.duplicate(true)
+		last_national_season_number = national_season_number
+		if last_national_champion == "YOU":
+			career_cash += 30000
+			career_reputation += 100
+			national_season_message = "NATIONAL CHAMPION! $30,000 + 100 REP. NATIONAL TITLE SECURED."
+			_add_career_notification("NATIONAL CHAMPION: You won the National Drag Association title.")
+		else:
+			national_season_message = "NATIONAL SEASON %d CHAMPION: %s. The next season awaits." % [national_season_number,last_national_champion]
+		national_season_number += 1
+		national_season_points = {}
+		national_events_completed = []
+		national_team_points = {}
+	_save_career()
+
+func _show_national_standings() -> void:
+	var display: Dictionary = national_season_points
+	var season_display := national_season_number
+	var heading := "CURRENT NATIONAL SEASON"
+	if national_events_completed.is_empty() and last_national_season_number > 0:
+		display = last_national_points
+		season_display = last_national_season_number
+		heading = "LAST NATIONAL CHAMPION  |  " + last_national_champion
+	var rows: Array = [{"name":"YOU","points":int(display.get("YOU",0))}]
+	for name in national_rival_names:
+		rows.append({"name":name,"points":int(display.get(name,0))})
+	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
+	var body := "%s\nSEASON %d\n\n" % [heading,season_display]
+	for index in range(rows.size()):
+		body += "%d. %s — %d points\n" % [index + 1,str(rows[index]["name"]),int(rows[index]["points"])]
+	body += "\nEVENTS COMPLETED  |  %d / %d" % [national_events_completed.size(),_national_event_catalog().size()]
+	_show_subpage("NATIONAL STANDINGS",body,"BACK TO CAREER")
+
+func _show_national_team_standings() -> void:
+	var display: Dictionary = national_team_points
+	var heading := "CURRENT NATIONAL TEAM TABLE"
+	if display.is_empty() and not last_national_team_points.is_empty():
+		display = last_national_team_points
+		heading = "LAST NATIONAL TEAM CHAMPIONSHIP"
+	var rows: Array = []
+	for team in display.keys():
+		rows.append({"name":str(team),"points":int(display[team])})
+	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
+	var body := heading + "\n\n"
+	if rows.is_empty():
+		body += "Team points will appear after the first national event."
+	else:
+		for index in range(rows.size()):
+			body += "%d. %s — %d points\n" % [index + 1,str(rows[index]["name"]),int(rows[index]["points"])]
+	_show_subpage("NATIONAL TEAM CHAMPIONSHIP",body,"BACK TO CAREER")
+
 func _show_national_pathway() -> void:
 	var body := "NATIONAL CHAMPIONSHIP PATHWAY\n\n"
 	body += "Your professional season victory has earned you an invitation to pursue the National Championship.\n\n"
@@ -1198,6 +1382,10 @@ func _show_national_pathway() -> void:
 	body += "Reputation  |  %d / 300\n" % mini(career_reputation, 300)
 	var qualified := national_pathway_unlocked and career_wins >= 25 and _driver_level() >= 10 and career_reputation >= 300
 	body += "\nSTATUS  |  %s" % ("QUALIFIED — NATIONAL SERIES ENTRY READY" if qualified else "INVITATION SECURED — COMPLETE THE REMAINING REQUIREMENTS")
+	if qualified:
+		var enter_button := _make_button("REGISTER FOR NATIONAL CHAMPIONSHIP", Color("#c17a28"))
+		enter_button.pressed.connect(_show_national_championship)
+		section_panel.add_child(enter_button)
 	_show_subpage("NATIONAL CHAMPIONSHIP", body, "BACK TO CAREER")
 
 func _show_professional_standings() -> void:
@@ -2032,15 +2220,21 @@ func _start_race() -> void:
 	menu_panel.hide()
 	race_panel.hide()
 	if career_race:
-		var event: Dictionary = _get_professional_event() if professional_circuit_active else _get_selected_event()
-		var entry_fee := int(event.get("entry_fee", _event_entry_fee(selected_event_id))) if professional_circuit_active else _event_entry_fee(selected_event_id)
+		var event: Dictionary = _get_national_event() if national_championship_active else (_get_professional_event() if professional_circuit_active else _get_selected_event())
+		var entry_fee := int(event.get("entry_fee", _event_entry_fee(selected_event_id))) if (professional_circuit_active or national_championship_active) else _event_entry_fee(selected_event_id)
+		if national_championship_active and not (national_pathway_unlocked and career_wins >= 25 and _driver_level() >= 10 and career_reputation >= 300):
+			career_race = false
+			national_championship_active = false
+			race_countdown_active = false
+			_show_national_pathway()
+			return
 		if professional_circuit_active and not professional_license:
 			career_race = false
 			professional_circuit_active = false
 			race_countdown_active = false
 			_show_career_dashboard()
 			return
-		if not professional_circuit_active and career_reputation < _event_min_reputation(selected_event_id):
+		if not professional_circuit_active and not national_championship_active and career_reputation < _event_min_reputation(selected_event_id):
 			career_race = false
 			story_race_active = false
 			race_countdown_active = false
@@ -2052,7 +2246,9 @@ func _start_race() -> void:
 			story_race_active = false
 			race_countdown_active = false
 			status_label.text = "You need $%s for this event's entry fee." % str(entry_fee)
-			if professional_circuit_active:
+			if national_championship_active:
+				_show_national_championship()
+			elif professional_circuit_active:
 				_show_professional_circuit()
 			else:
 				_show_event_selection()
@@ -2086,11 +2282,16 @@ func _start_race() -> void:
 	_roll_track_condition()
 	throttle_down = false
 	if career_race:
-		if professional_circuit_active:
+		if national_championship_active:
+			rival_name = str(national_rival_names[(national_events_completed.size() + national_season_number - 1) % national_rival_names.size()])
+		elif professional_circuit_active:
 			rival_name = str(professional_rival_names[(professional_events_completed.size() + professional_season_number - 1) % professional_rival_names.size()])
 		else:
 			rival_name = ("Viktor Kane" if story_stage >= 5 and story_stage <= 7 else "Elena Cross") if story_race_active else (rival_challenge_name if rival_challenge_active else str(rival_names[(career_wins + career_losses) % rival_names.size()]))
-		var selected_record: Dictionary = professional_rival_records.get(rival_name, {}) if professional_circuit_active else rival_records.get(rival_name, {})
+		var selected_record: Dictionary = national_rival_records.get(rival_name, {}) if national_championship_active else (professional_rival_records.get(rival_name, {}) if professional_circuit_active else rival_records.get(rival_name, {}))
+		if national_championship_active and selected_record.is_empty():
+			_ensure_national_rival_records()
+			selected_record = national_rival_records.get(rival_name, {})
 		if professional_circuit_active and selected_record.is_empty():
 			var pro_index := professional_rival_names.find(rival_name)
 			selected_record = {"rating": 68 + pro_index * 5, "upgrade_level": pro_index + 2, "car": "Turbo Coupe" if pro_index < 2 else "Muscle V8"}
@@ -2106,7 +2307,7 @@ func _start_race() -> void:
 		elif rival_car == "Muscle V8":
 			car_speed_bonus = 12.0
 			car_acceleration_bonus = 2.4
-		var race_event_data: Dictionary = _get_professional_event() if professional_circuit_active else _get_selected_event()
+		var race_event_data: Dictionary = _get_national_event() if national_championship_active else (_get_professional_event() if professional_circuit_active else _get_selected_event())
 		rival_target_speed = float(race_event_data["rival_speed"]) + float(rival_rating - 50) * 0.22 + float(rival_upgrades) * 0.8 + car_speed_bonus
 		rival_acceleration = 19.0 + float(rival_upgrades) * 0.35 + car_acceleration_bonus + float(rival_rating - 50) * 0.025
 	else:
@@ -2179,7 +2380,7 @@ func _finish_race() -> void:
 	nitro_active = false
 	var was_career_race := career_race
 	var won := player_distance >= race_distance and player_distance >= rival_distance
-	var record_key := (selected_professional_event_id if professional_circuit_active else selected_event_id) if career_race else "quick_402"
+	var record_key := (selected_national_event_id if national_championship_active else (selected_professional_event_id if professional_circuit_active else selected_event_id)) if career_race else "quick_402"
 	last_race_record_key = record_key
 	var previous_best := float(personal_bests.get(record_key, 0.0))
 	var new_personal_best := previous_best <= 0.0 or race_time < previous_best
@@ -2227,7 +2428,10 @@ func _finish_race() -> void:
 		last_xp_earned = 100 if won else 50
 		career_xp += last_xp_earned
 		last_level_up = _driver_level() > old_level
-		if professional_circuit_active:
+		if national_championship_active:
+			_update_national_rival_results(won)
+			_update_national_season(won)
+		elif professional_circuit_active:
 			_update_professional_rival_results(won)
 			_update_professional_season(won)
 		else:
@@ -2270,6 +2474,7 @@ func _finish_race() -> void:
 		career_race = false
 		story_race_active = false
 		professional_circuit_active = false
+		national_championship_active = false
 		_check_achievements(new_personal_best)
 		_save_career()
 	else:
@@ -2304,6 +2509,8 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 			_add_section_label(last_season_message)
 		if professional_season_message != "":
 			_add_section_label(professional_season_message)
+		if national_season_message != "":
+			_add_section_label(national_season_message)
 		if last_sponsor_message != "":
 			_add_section_label(last_sponsor_message)
 		if last_achievement_message != "":
@@ -2452,6 +2659,15 @@ func _load_career_save() -> void:
 	professional_team_points = save.get_value("career", "professional_team_points", {})
 	last_professional_team_points = save.get_value("career", "last_professional_team_points", {})
 	national_pathway_unlocked = bool(save.get_value("career", "national_pathway_unlocked", false))
+	national_season_number = int(save.get_value("career", "national_season_number", 1))
+	national_season_points = save.get_value("career", "national_season_points", {})
+	national_events_completed = save.get_value("career", "national_events_completed", [])
+	national_rival_records = save.get_value("career", "national_rival_records", {})
+	national_team_points = save.get_value("career", "national_team_points", {})
+	last_national_points = save.get_value("career", "last_national_points", {})
+	last_national_team_points = save.get_value("career", "last_national_team_points", {})
+	last_national_champion = str(save.get_value("career", "last_national_champion", ""))
+	last_national_season_number = int(save.get_value("career", "last_national_season_number", 0))
 	last_story_message = str(save.get_value("career", "last_story_message", ""))
 	owned_cars = save.get_value("garage", "owned_cars", ["Street Compact"])
 	active_car = str(save.get_value("garage", "active_car", "Street Compact"))
@@ -2536,6 +2752,15 @@ func _save_career() -> void:
 	save.set_value("career", "professional_team_points", professional_team_points)
 	save.set_value("career", "last_professional_team_points", last_professional_team_points)
 	save.set_value("career", "national_pathway_unlocked", national_pathway_unlocked)
+	save.set_value("career", "national_season_number", national_season_number)
+	save.set_value("career", "national_season_points", national_season_points)
+	save.set_value("career", "national_events_completed", national_events_completed)
+	save.set_value("career", "national_rival_records", national_rival_records)
+	save.set_value("career", "national_team_points", national_team_points)
+	save.set_value("career", "last_national_points", last_national_points)
+	save.set_value("career", "last_national_team_points", last_national_team_points)
+	save.set_value("career", "last_national_champion", last_national_champion)
+	save.set_value("career", "last_national_season_number", last_national_season_number)
 	save.set_value("career", "last_story_message", last_story_message)
 	save.set_value("garage", "owned_cars", owned_cars)
 	save.set_value("garage", "active_car", active_car)
