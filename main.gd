@@ -55,6 +55,11 @@ var career_losses := 0
 var career_cash := 0
 var career_reputation := 0
 var last_result := "No races completed"
+var owned_cars: Array = ["Street Compact"]
+var active_car := "Street Compact"
+var car_max_speed := 290.0
+var car_acceleration := 23.0
+var garage_return_to_career := false
 var rival_name := "Darius Cole"
 var rival_names := ["Darius Cole", "Maya Brooks", "Jaxon Reed", "Andre Silva"]
 
@@ -85,7 +90,7 @@ func _process(delta: float) -> void:
 	shift_cooldown = maxf(0.0, shift_cooldown - delta)
 	if throttle_down:
 		var gear_factor := 1.0 + float(gear - 1) * 0.025
-		player_speed = minf(MAX_SPEED * gear_factor, player_speed + ACCELERATION * gear_factor * delta)
+		player_speed = minf(car_max_speed * gear_factor, player_speed + car_acceleration * gear_factor * delta)
 		rpm = minf(7600.0, rpm + 3900.0 * delta)
 	else:
 		player_speed = maxf(0.0, player_speed - 4.0 * delta)
@@ -145,7 +150,10 @@ func _build_interface() -> void:
 	menu_panel.add_child(quick_button)
 	var garage_button := _make_button("GARAGE", Color("#34485d"))
 	garage_button.add_theme_color_override("font_color", Color.WHITE)
-	garage_button.pressed.connect(func(): _show_info_page("GARAGE", "Your car collection will live here. Buy, sell, upgrade and customize your cars."))
+	garage_button.pressed.connect(func():
+		garage_return_to_career = false
+		_show_garage()
+	)
 	menu_panel.add_child(garage_button)
 	var settings_button := _make_button("SETTINGS", Color("#34485d"))
 	settings_button.add_theme_color_override("font_color", Color.WHITE)
@@ -269,7 +277,10 @@ func _show_career_dashboard() -> void:
 	section_panel.add_child(rivals_button)
 	var garage_button := _make_button("GARAGE", Color("#34485d"))
 	garage_button.add_theme_color_override("font_color", Color.WHITE)
-	garage_button.pressed.connect(func(): _show_info_page("GARAGE", "Your car collection, upgrades and customization will be developed here."))
+	garage_button.pressed.connect(func():
+		garage_return_to_career = true
+		_show_garage()
+	)
 	section_panel.add_child(garage_button)
 	var finances_button := _make_button("FINANCES", Color("#34485d"))
 	finances_button.add_theme_color_override("font_color", Color.WHITE)
@@ -279,6 +290,81 @@ func _show_career_dashboard() -> void:
 	back_button.add_theme_color_override("font_color", Color.WHITE)
 	back_button.pressed.connect(_show_menu)
 	section_panel.add_child(back_button)
+
+func _car_catalog() -> Array:
+	return [
+		{"name": "Street Compact", "price": 0, "speed": 290.0, "acceleration": 23.0, "description": "Balanced starter car"},
+		{"name": "Turbo Coupe", "price": 2500, "speed": 315.0, "acceleration": 27.0, "description": "Quick acceleration and strong top speed"},
+		{"name": "Muscle V8", "price": 6000, "speed": 340.0, "acceleration": 25.0, "description": "High top speed with powerful launches"}
+	]
+
+func _apply_active_car() -> void:
+	for car in _car_catalog():
+		if str(car["name"]) == active_car:
+			car_max_speed = float(car["speed"])
+			car_acceleration = float(car["acceleration"])
+			return
+	active_car = "Street Compact"
+	car_max_speed = 290.0
+	car_acceleration = 23.0
+
+func _show_garage() -> void:
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	title_label.text = "YOUR GARAGE"
+	status_label.text = "Cash: RWF %s  •  Active car: %s" % [str(career_cash), active_car]
+	_clear_section()
+	_add_section_label("OWNED CARS")
+	for car in _car_catalog():
+		var car_name := str(car["name"])
+		var is_owned := owned_cars.has(car_name)
+		var is_active := active_car == car_name
+		var caption := ""
+		if is_active:
+			caption = "ACTIVE  •  " + car_name
+		elif is_owned:
+			caption = "SELECT  •  " + car_name
+		else:
+			caption = "BUY  •  %s  •  RWF %s" % [car_name, str(car["price"])]
+		var car_button := _make_button(caption, Color("#f5a623") if is_active else Color("#34485d"))
+		if not is_active:
+			car_button.add_theme_color_override("font_color", Color.WHITE)
+			if is_owned:
+				car_button.pressed.connect(_select_car.bind(car_name))
+			else:
+				car_button.pressed.connect(_buy_car.bind(car_name))
+		section_panel.add_child(car_button)
+		_add_section_label("%s  •  %d km/h  •  Acceleration %d" % [str(car["description"]), int(car["speed"]), int(car["acceleration"])])
+	var back_button := _make_button("BACK", Color("#263545"))
+	back_button.add_theme_color_override("font_color", Color.WHITE)
+	if garage_return_to_career:
+		back_button.pressed.connect(_show_career_dashboard)
+	else:
+		back_button.pressed.connect(_show_menu)
+	section_panel.add_child(back_button)
+
+func _buy_car(car_name: String) -> void:
+	for car in _car_catalog():
+		if str(car["name"]) == car_name and not owned_cars.has(car_name):
+			var price := int(car["price"])
+			if career_cash < price:
+				status_label.text = "Not enough cash. You need RWF %s." % str(price - career_cash)
+				return
+			career_cash -= price
+			owned_cars.append(car_name)
+			active_car = car_name
+			_apply_active_car()
+			_save_career()
+			_show_garage()
+			return
+
+func _select_car(car_name: String) -> void:
+	if owned_cars.has(car_name):
+		active_car = car_name
+		_apply_active_car()
+		_save_career()
+		_show_garage()
 
 func _show_calendar() -> void:
 	_show_subpage("RACE CALENDAR", "WEEK 1  •  ROOKIE DIVISION\n\n1. Quarter-Mile Sprint — 402 m\n2. Street Sprint — coming soon\n3. Circuit Challenge — coming soon", "BACK TO CAREER")
@@ -405,6 +491,13 @@ func _load_career_save() -> void:
 	career_cash = int(save.get_value("career", "cash", 0))
 	career_reputation = int(save.get_value("career", "reputation", 0))
 	last_result = str(save.get_value("career", "last_result", "No races completed"))
+	owned_cars = save.get_value("garage", "owned_cars", ["Street Compact"])
+	active_car = str(save.get_value("garage", "active_car", "Street Compact"))
+	if not owned_cars.has("Street Compact"):
+		owned_cars.append("Street Compact")
+	if not owned_cars.has(active_car):
+		active_car = "Street Compact"
+	_apply_active_car()
 
 func _save_career() -> void:
 	var save := ConfigFile.new()
@@ -413,6 +506,8 @@ func _save_career() -> void:
 	save.set_value("career", "cash", career_cash)
 	save.set_value("career", "reputation", career_reputation)
 	save.set_value("career", "last_result", last_result)
+	save.set_value("garage", "owned_cars", owned_cars)
+	save.set_value("garage", "active_car", active_car)
 	var error := save.save("user://career_save.cfg")
 	if error != OK:
 		push_warning("Could not save career progress.")
