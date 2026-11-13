@@ -1261,6 +1261,7 @@ func _roll_track_condition() -> void:
 
 
 func _start_race() -> void:
+	last_jasper_job_message = ""
 	if race_countdown_active:
 		return
 	race_countdown_active = true
