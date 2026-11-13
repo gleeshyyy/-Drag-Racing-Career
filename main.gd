@@ -103,6 +103,8 @@ var active_car := "Street Compact"
 var car_upgrades: Dictionary = {}
 var car_condition: Dictionary = {}
 var last_condition_loss := 0.0
+var car_fuel: Dictionary = {}
+var last_fuel_used := 0.0
 var car_paints: Dictionary = {}
 var owned_paints: Array = ["#f5a623"]
 var paint_price := 250
@@ -428,6 +430,11 @@ func _apply_active_car() -> void:
 	var condition_factor := condition / 100.0
 	car_max_speed *= 1.0 - (1.0 - condition_factor) * 0.15
 	car_acceleration *= 1.0 - (1.0 - condition_factor) * 0.25
+	var fuel := clampf(float(car_fuel.get(active_car, 100.0)), 0.0, 100.0)
+	if fuel < 20.0:
+		var fuel_factor := 0.70 + fuel / 20.0 * 0.30
+		car_max_speed *= 0.90 + fuel / 20.0 * 0.10
+		car_acceleration *= fuel_factor
 
 func _service_active_car() -> void:
 	var condition := clampf(float(car_condition.get(active_car, 100.0)), 0.0, 100.0)
@@ -442,6 +449,23 @@ func _service_active_car() -> void:
 		return
 	car_condition[active_car] = minf(100.0, condition + repair_amount)
 	career_cash -= repair_cost
+	_apply_active_car()
+	_save_career()
+	_show_garage()
+
+func _refuel_active_car() -> void:
+	var fuel := clampf(float(car_fuel.get(active_car, 100.0)), 0.0, 100.0)
+	var missing_fuel := 100.0 - fuel
+	if missing_fuel <= 0.0 or career_cash <= 0:
+		_show_garage()
+		return
+	var refill_amount := minf(missing_fuel, float(career_cash) / 10.0)
+	var refill_cost := mini(career_cash, int(ceil(refill_amount * 10.0)))
+	if refill_amount <= 0.0 or refill_cost <= 0:
+		_show_garage()
+		return
+	car_fuel[active_car] = minf(100.0, fuel + refill_amount)
+	career_cash -= refill_cost
 	_apply_active_car()
 	_save_career()
 	_show_garage()
@@ -490,6 +514,15 @@ func _show_garage() -> void:
 	service_button.disabled = condition >= 99.9 or career_cash <= 0
 	service_button.pressed.connect(_service_active_car)
 	section_panel.add_child(service_button)
+	var fuel := clampf(float(car_fuel.get(active_car, 100.0)), 0.0, 100.0)
+	_add_section_label("FUEL LEVEL  |  %.1f%%" % fuel)
+	_add_section_label("Low fuel reduces engine performance. Refuelling costs $10 per 1%.")
+	var refuel_cost := int(ceil((100.0 - fuel) * 10.0))
+	var refuel_button := _make_button("REFUEL CAR  |  $%s" % str(refuel_cost), Color("#2675a8"))
+	refuel_button.add_theme_color_override("font_color", Color.WHITE)
+	refuel_button.disabled = fuel >= 99.9 or career_cash <= 0
+	refuel_button.pressed.connect(_refuel_active_car)
+	section_panel.add_child(refuel_button)
 	var back_button := _make_button("BACK", Color("#263545"))
 	back_button.add_theme_color_override("font_color", Color.WHITE)
 	if garage_return_to_career:
@@ -1202,6 +1235,11 @@ func _finish_race() -> void:
 	var condition_after := maxf(0.0, condition_before - race_distance / 1000.0)
 	last_condition_loss = condition_before - condition_after
 	car_condition[active_car] = condition_after
+	var fuel_before := clampf(float(car_fuel.get(active_car, 100.0)), 0.0, 100.0)
+	var fuel_consumption := race_distance / 402.0 * 1.5 + nitro_used * 0.03
+	last_fuel_used = minf(fuel_before, fuel_consumption)
+	var fuel_after := maxf(0.0, fuel_before - last_fuel_used)
+	car_fuel[active_car] = fuel_after
 	_apply_active_car()
 	race_history.push_front({
 		"event": race_event_name,
@@ -1212,6 +1250,8 @@ func _finish_race() -> void:
 		"nitro_used": nitro_used,
 		"condition": race_track_condition,
 		"car_condition": condition_after,
+		"fuel_remaining": fuel_after,
+		"fuel_used": last_fuel_used,
 		"distance": int(race_distance),
 		"prize": race_prize,
 		"mode": "Career" if was_career_race else "Quick Race",
@@ -1263,6 +1303,7 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 	_add_section_label("NITRO USED  |  %d%%" % int(nitro_used / maxf(1.0, nitro_capacity) * 100.0))
 	_add_section_label("TRACK CONDITION  |  " + race_track_condition)
 	_add_section_label("CAR CONDITION  |  %.1f%%  ( -%.2f%% wear )" % [float(car_condition.get(active_car, 100.0)), last_condition_loss])
+	_add_section_label("FUEL REMAINING  |  %.1f%%  ( -%.2f%% used )" % [float(car_fuel.get(active_car, 100.0)), last_fuel_used])
 	_add_section_label("DISTANCE  |  %d metres" % int(race_distance))
 	_add_section_label("PRIZE MONEY  |  $%s" % str(race_reward if was_career_race and won else 0))
 	if was_career_race:
@@ -1381,6 +1422,7 @@ func _load_career_save() -> void:
 	active_car = str(save.get_value("garage", "active_car", "Street Compact"))
 	car_upgrades = save.get_value("garage", "car_upgrades", {})
 	car_condition = save.get_value("garage", "car_condition", {})
+	car_fuel = save.get_value("garage", "car_fuel", {})
 	car_paints = save.get_value("garage", "car_paints", {})
 	owned_paints = save.get_value("garage", "owned_paints", ["#f5a623"])
 	if not owned_paints.has("#f5a623"):
@@ -1424,6 +1466,7 @@ func _save_career() -> void:
 	save.set_value("garage", "active_car", active_car)
 	save.set_value("garage", "car_upgrades", car_upgrades)
 	save.set_value("garage", "car_condition", car_condition)
+	save.set_value("garage", "car_fuel", car_fuel)
 	save.set_value("garage", "car_paints", car_paints)
 	save.set_value("garage", "owned_paints", owned_paints)
 	var error := save.save("user://career_save.cfg")
