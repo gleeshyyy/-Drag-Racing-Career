@@ -588,16 +588,16 @@ func _show_standings() -> void:
 		var record: Dictionary = rival_records.get(name, {})
 		rows.append({"name": name, "points": int(record.get("points", 0))})
 	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
-	var body := "ROOKIE CHAMPIONSHIP\\n\\n"
+	var body := "ROOKIE CHAMPIONSHIP\n\n"
 	for index in range(rows.size()):
-		body += "%d. %s — %d points\\n" % [index + 1, str(rows[index]["name"]), int(rows[index]["points"])]
+		body += "%d. %s — %d points\n" % [index + 1, str(rows[index]["name"]), int(rows[index]["points"])]
 	_show_subpage("STANDINGS", body, "BACK TO CAREER")
 
 func _show_rivals() -> void:
-	var body := "YOUR RIVALS\\n\\n"
+	var body := "YOUR RIVALS\n\n"
 	for name in rival_names:
 		var record: Dictionary = rival_records.get(name, {})
-		body += "%s\\nWins: %d  Losses: %d\\nPoints: %d  Reputation: %d\\nCar rating: %d/100\\n\\n" % [name, int(record.get("wins", 0)), int(record.get("losses", 0)), int(record.get("points", 0)), int(record.get("reputation", 0)), int(record.get("rating", 50))]
+		body += "%s\nWins: %d  Losses: %d\nPoints: %d  Reputation: %d\nCar rating: %d/100\n\n" % [name, int(record.get("wins", 0)), int(record.get("losses", 0)), int(record.get("points", 0)), int(record.get("reputation", 0)), int(record.get("rating", 50))]
 	_show_subpage("RIVALS", body, "BACK TO CAREER")
 
 func _ensure_rival_records() -> void:
