@@ -285,6 +285,14 @@ func _build_interface() -> void:
 		_show_garage()
 	)
 	menu_panel.add_child(garage_button)
+	var achievements_menu_button := _make_button("ACHIEVEMENTS", Color("#34485d"))
+	achievements_menu_button.add_theme_color_override("font_color", Color.WHITE)
+	achievements_menu_button.pressed.connect(_show_achievements)
+	menu_panel.add_child(achievements_menu_button)
+	var reset_menu_button := _make_button("RESET CAREER", Color("#8f3e3e"))
+	reset_menu_button.add_theme_color_override("font_color", Color.WHITE)
+	reset_menu_button.pressed.connect(_show_reset_career_confirmation)
+	menu_panel.add_child(reset_menu_button)
 	var settings_button := _make_button("SETTINGS", Color("#34485d"))
 	settings_button.add_theme_color_override("font_color", Color.WHITE)
 	settings_button.pressed.connect(func(): _show_info_page("SETTINGS", "Game settings will be added here."))
@@ -394,6 +402,38 @@ func _show_menu() -> void:
 	menu_panel.show()
 	title_label.text = "THE STREETS\nARE YOURS."
 	status_label.text = "Choose how you want to race."
+
+func _show_reset_career_confirmation() -> void:
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	title_label.text = "RESET CAREER"
+	status_label.text = "PERMANENT CAREER DATA RESET"
+	_clear_section()
+	_add_section_label("This will permanently erase your current career, including:")
+	_add_section_label("• Race results, money, reputation and driver level")
+	_add_section_label("• Cars, upgrades, records and achievements")
+	_add_section_label("• Story progress, contracts and championship standings")
+	_add_section_label("")
+	_add_section_label("Quick Race and game settings are not part of the career save.")
+	var confirm_button := _make_button("DELETE CAREER AND START OVER", Color("#a83d3d"))
+	confirm_button.add_theme_color_override("font_color", Color.WHITE)
+	confirm_button.pressed.connect(_reset_career_and_restart)
+	section_panel.add_child(confirm_button)
+	var cancel_button := _make_button("CANCEL  |  BACK TO MAIN MENU", Color("#34485d"))
+	cancel_button.add_theme_color_override("font_color", Color.WHITE)
+	cancel_button.pressed.connect(_show_menu)
+	section_panel.add_child(cancel_button)
+
+func _reset_career_and_restart() -> void:
+	var save_path := ProjectSettings.globalize_path("user://career_save.cfg")
+	if FileAccess.file_exists("user://career_save.cfg"):
+		var error := DirAccess.remove_absolute(save_path)
+		if error != OK:
+			status_label.text = "RESET FAILED — SAVE FILE COULD NOT BE DELETED"
+			_add_section_label("Your existing career has not been reset. Check available device storage and try again.")
+			return
+	get_tree().reload_current_scene()
 
 func _show_career_dashboard() -> void:
 	menu_panel.hide()
