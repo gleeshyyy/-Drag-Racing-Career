@@ -1,5 +1,39 @@
 extends Control
 
+class DragTrack extends Control:
+	var player_progress := 0.0
+	var rival_progress := 0.0
+
+	func set_progress(player_value: float, rival_value: float) -> void:
+		player_progress = clampf(player_value, 0.0, 1.0)
+		rival_progress = clampf(rival_value, 0.0, 1.0)
+		queue_redraw()
+
+	func _draw() -> void:
+		var w := size.x
+		var h := size.y
+		draw_rect(Rect2(Vector2.ZERO, size), Color("#202a35"))
+		draw_rect(Rect2(Vector2(0, 12), Vector2(w, 72)), Color("#303d4a"))
+		draw_rect(Rect2(Vector2(0, 106), Vector2(w, 72)), Color("#303d4a"))
+		for x in range(0, int(w), 42):
+			draw_rect(Rect2(Vector2(x, 94), Vector2(22, 3)), Color("#aab5bf"))
+		for y in [24.0, 118.0]:
+			draw_line(Vector2(0, y + 60), Vector2(w, y + 60), Color("#687582"), 1.5)
+		var finish_x := w - 24.0
+		for y in range(12, 180, 12):
+			draw_rect(Rect2(Vector2(finish_x, y), Vector2(8, 6)), Color.WHITE if (y / 12) % 2 == 0 else Color("#202a35"))
+		_draw_car(28.0 + player_progress * maxf(0.0, w - 105.0), 48.0, Color("#f5a623"))
+		_draw_car(28.0 + rival_progress * maxf(0.0, w - 105.0), 142.0, Color("#38a8e8"))
+
+	func _draw_car(x: float, center_y: float, paint: Color) -> void:
+		draw_rect(Rect2(Vector2(x, center_y - 10.0), Vector2(48, 17)), paint)
+		draw_colored_polygon(PackedVector2Array([Vector2(x + 9, center_y - 10), Vector2(x + 19, center_y - 20), Vector2(x + 37, center_y - 20), Vector2(x + 44, center_y - 10)]), paint)
+		draw_rect(Rect2(Vector2(x + 21, center_y - 18), Vector2(13, 7)), Color("#b9d8e8"))
+		draw_circle(Vector2(x + 11, center_y + 8), 6.0, Color("#111820"))
+		draw_circle(Vector2(x + 39, center_y + 8), 6.0, Color("#111820"))
+		draw_circle(Vector2(x + 11, center_y + 8), 2.5, Color("#aeb9c3"))
+		draw_circle(Vector2(x + 39, center_y + 8), 2.5, Color("#aeb9c3"))
+
 const TRACK_LENGTH := 402.0
 const ACCELERATION := 23.0
 const MAX_SPEED := 290.0
@@ -15,7 +49,6 @@ var gear := 1
 var throttle_down := false
 var shift_cooldown := 0.0
 var race_time := 0.0
-var result_text := ""
 
 var title_label: Label
 var status_label: Label
@@ -30,6 +63,7 @@ var shift_button: Button
 var race_panel: VBoxContainer
 var menu_panel: VBoxContainer
 var start_button: Button
+var track_visual: DragTrack
 
 func _ready() -> void:
 	_build_interface()
@@ -121,23 +155,13 @@ func _build_interface() -> void:
 	track_title.add_theme_font_size_override("font_size", 14)
 	track_title.add_theme_color_override("font_color", Color("#f5a623"))
 	track_box.add_child(track_title)
-	var road := ColorRect.new()
-	road.custom_minimum_size = Vector2(0, 190)
-	road.color = Color("#263442")
-	track_box.add_child(road)
-	var road_text := Label.new()
-	road_text.text = "RIVAL LANE     ─ ─ ─ ─ ─ ─ ─ ─\n\nYOUR LANE       ─ ─ ─ ─ ─ ─ ─ ─"
-	road_text.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	road_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	road_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	road_text.add_theme_font_size_override("font_size", 14)
-	road_text.add_theme_color_override("font_color", Color("#c4d0db"))
-	road.add_child(road_text)
+	track_visual = DragTrack.new()
+	track_visual.custom_minimum_size = Vector2(0, 190)
+	track_box.add_child(track_visual)
 
 	var rival_row := HBoxContainer.new()
 	track_box.add_child(rival_row)
-	var rival_name := _small_label("RIVAL")
-	rival_row.add_child(rival_name)
+	rival_row.add_child(_small_label("RIVAL"))
 	rival_bar = ProgressBar.new()
 	rival_bar.max_value = TRACK_LENGTH
 	rival_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -219,7 +243,6 @@ func _shift_gear() -> void:
 		shift_cooldown = 0.35
 		gear_label.text = "GEAR  %d" % gear
 	else:
-		# A mistimed shift costs a little speed.
 		player_speed = maxf(0.0, player_speed - 8.0)
 		rpm = maxf(900.0, rpm - 900.0)
 
@@ -230,6 +253,7 @@ func _update_hud() -> void:
 	gear_label.text = "GEAR  %d" % gear
 	player_bar.value = minf(player_distance, TRACK_LENGTH)
 	rival_bar.value = minf(rival_distance, TRACK_LENGTH)
+	track_visual.set_progress(player_distance / TRACK_LENGTH, rival_distance / TRACK_LENGTH)
 
 func _finish_race() -> void:
 	race_active = false
