@@ -642,30 +642,26 @@ func _search_quick_opponent() -> void:
 		return
 	quick_searching = true
 	_clear_section()
-	_add_section_label("SCANNING AI DRIVER ROSTER")
-	var search_status := _small_label("Connecting to local race network...")
+	_add_section_label("🔍 SEARCHING FOR OPPONENT")
+	var search_status := _small_label("Scanning the local AI driver roster")
 	search_status.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	section_panel.add_child(search_status)
-	var progress := ProgressBar.new()
-	progress.min_value = 0
-	progress.max_value = 100
-	progress.value = 0
-	progress.show_percentage = true
-	progress.custom_minimum_size = Vector2(0, 22)
-	section_panel.add_child(progress)
-	_add_section_label("NO INTERNET REQUIRED  •  LOCAL AI MATCHMAKING")
+	var search_icon := _large_label("🔍")
+	search_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	section_panel.add_child(search_icon)
+	_add_section_label("OFFLINE MATCHMAKING")
 	var search_messages := [
-		"Checking available drivers...",
-		"Comparing driver skill levels...",
-		"Finding a suitable opponent...",
-		"Preparing the race invitation..."
+		"Scanning available drivers",
+		"Checking driver experience",
+		"Comparing racing performance",
+		"Finding your next rival"
 	]
-	for step in range(20):
-		progress.value = (step + 1) * 5
-		search_status.text = str(search_messages[min(step / 5, search_messages.size() - 1)])
+	for step in range(28):
+		search_status.text = str(search_messages[mini(step / 7, search_messages.size() - 1)])
 		for dot_count in range((step % 3) + 1):
 			search_status.text += "."
-		await get_tree().create_timer(0.12).timeout
+		search_icon.rotation = deg_to_rad(float(step) * 18.0)
+		await get_tree().create_timer(0.25).timeout
 	var available_rivals := rival_names.duplicate()
 	if available_rivals.size() > 1 and available_rivals.has(quick_rival_name):
 		available_rivals.erase(quick_rival_name)
