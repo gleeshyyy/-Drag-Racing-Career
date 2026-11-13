@@ -210,6 +210,9 @@ var race_countdown_active := false
 var rival_records: Dictionary = {}
 
 var sound_enabled := true
+var driver_name := ""
+var driver_gender := "MALE"
+var career_profile_created := false
 var nitro_was_active := false
 var title_label: Label
 var status_label: Label
@@ -242,7 +245,10 @@ func _ready() -> void:
 	_ensure_rival_records()
 	_ensure_professional_rival_records()
 	_build_interface()
-	_show_menu()
+	if career_profile_created:
+		_show_menu()
+	else:
+		_show_driver_creation()
 
 func _process(delta: float) -> void:
 	if not race_active:
@@ -476,6 +482,78 @@ func _build_interface() -> void:
 	hint.add_theme_font_size_override("font_size", 12)
 	hint.add_theme_color_override("font_color", Color("#91a1b2"))
 	race_panel.add_child(hint)
+
+func _show_driver_creation() -> void:
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	nav_panel.hide()
+	title_label.text = "BUILD YOUR DRIVER"
+	status_label.text = "YOUR CAREER STARTS WITH A NAME"
+	_clear_section()
+	var portrait := PanelContainer.new()
+	portrait.custom_minimum_size = Vector2(0, 176)
+	portrait.add_theme_stylebox_override("panel", _dashboard_card_style(Color("#00f0ff")))
+	var portrait_box := VBoxContainer.new()
+	portrait_box.alignment = BoxContainer.ALIGNMENT_CENTER
+	portrait_box.add_theme_constant_override("separation", 6)
+	portrait.add_child(portrait_box)
+	var portrait_mark := Label.new()
+	portrait_mark.text = "DRIVER  /  01"
+	portrait_mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	portrait_mark.add_theme_font_size_override("font_size", 13)
+	portrait_mark.add_theme_color_override("font_color", Color("#00f0ff"))
+	portrait_box.add_child(portrait_mark)
+	var portrait_title := Label.new()
+	portrait_title.text = "THE NEXT NAME\nON THE STARTING GRID"
+	portrait_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	portrait_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	portrait_title.add_theme_font_size_override("font_size", 23)
+	portrait_title.add_theme_color_override("font_color", Color("#f2f6fa"))
+	portrait_box.add_child(portrait_title)
+	var portrait_note := Label.new()
+	portrait_note.text = "PROFILE SETUP  •  CAREER MODE"
+	portrait_note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	portrait_note.add_theme_font_size_override("font_size", 10)
+	portrait_note.add_theme_color_override("font_color", Color("#9aabba"))
+	portrait_box.add_child(portrait_note)
+	section_panel.add_child(portrait)
+	_add_section_label("DRIVER NAME")
+	var name_input := LineEdit.new()
+	name_input.placeholder_text = "Enter your driver name"
+	name_input.text = driver_name
+	name_input.custom_minimum_size = Vector2(0, 54)
+	name_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_input.add_theme_font_size_override("font_size", 18)
+	name_input.add_theme_color_override("font_color", Color.WHITE)
+	name_input.add_theme_stylebox_override("normal", _panel_style("#121c2b"))
+	name_input.add_theme_stylebox_override("focus", _panel_style("#121c2b"))
+	section_panel.add_child(name_input)
+	_add_section_label("DRIVER GENDER")
+	var gender_picker := OptionButton.new()
+	gender_picker.custom_minimum_size = Vector2(0, 52)
+	gender_picker.add_item("MALE")
+	gender_picker.add_item("FEMALE")
+	gender_picker.select(1 if driver_gender == "FEMALE" else 0)
+	gender_picker.add_theme_font_size_override("font_size", 16)
+	section_panel.add_child(gender_picker)
+	_add_section_label("Appearance customization will be expanded in the next character-design pass. Your name and gender are saved to this career profile.")
+	var start_button := _make_button("CREATE DRIVER  /  START CAREER  →", Color("#f5a623"))
+	start_button.custom_minimum_size = Vector2(0, 76)
+	start_button.pressed.connect(_create_driver_profile.bind(name_input, gender_picker))
+	section_panel.add_child(start_button)
+
+func _create_driver_profile(name_input: LineEdit, gender_picker: OptionButton) -> void:
+	var entered_name := name_input.text.strip_edges()
+	if entered_name.is_empty():
+		status_label.text = "ENTER A DRIVER NAME TO CONTINUE"
+		name_input.grab_focus()
+		return
+	driver_name = entered_name
+	driver_gender = "FEMALE" if gender_picker.selected == 1 else "MALE"
+	career_profile_created = true
+	_save_career()
+	_show_menu()
 
 func _show_menu() -> void:
 	race_active = false
@@ -3269,6 +3347,9 @@ func _load_career_save() -> void:
 	var error := save.load("user://career_save.cfg")
 	if error != OK:
 		return
+	career_profile_created = true
+	driver_name = str(save.get_value("driver", "name", "Driver"))
+	driver_gender = str(save.get_value("driver", "gender", "MALE"))
 	career_wins = int(save.get_value("career", "wins", 0))
 	career_losses = int(save.get_value("career", "losses", 0))
 	career_cash = int(save.get_value("career", "cash", 0))
@@ -3383,6 +3464,9 @@ func _load_career_save() -> void:
 
 func _save_career() -> void:
 	var save := ConfigFile.new()
+	save.set_value("driver", "name", driver_name)
+	save.set_value("driver", "gender", driver_gender)
+	save.set_value("driver", "profile_created", career_profile_created)
 	save.set_value("career", "wins", career_wins)
 	save.set_value("career", "losses", career_losses)
 	save.set_value("career", "cash", career_cash)
