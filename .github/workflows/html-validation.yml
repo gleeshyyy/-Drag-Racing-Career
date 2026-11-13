@@ -27,7 +27,8 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
       - name: Run browser smoke tests
-        run: node tests/browser-smoke.cjs\n      - name: Check required app files
+        run: node tests/browser-smoke.cjs
+      - name: Check required app files
         run: |
           test -s index.html
           test -s styles.css
