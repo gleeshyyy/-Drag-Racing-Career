@@ -63,7 +63,6 @@ var shift_button: Button
 var race_panel: VBoxContainer
 var menu_panel: VBoxContainer
 var section_panel: VBoxContainer
-var start_button: Button
 var track_visual: DragTrack
 
 func _ready() -> void:
@@ -333,11 +332,9 @@ func _finish_race() -> void:
 	if won:
 		title_label.text = "RACE WON!"
 		status_label.text = "You beat the rival in %.2f seconds." % race_time
-		start_button.text = "RACE AGAIN"
 	else:
 		title_label.text = "RACE LOST"
 		status_label.text = "The rival got there first. Run it back."
-		start_button.text = "TRY AGAIN"
 
 func _make_button(caption: String, fill: Color) -> Button:
 	var button := Button.new()
