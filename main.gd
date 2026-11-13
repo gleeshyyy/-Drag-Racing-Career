@@ -3,6 +3,11 @@ extends Control
 class DragTrack extends Control:
 	var player_progress := 0.0
 	var rival_progress := 0.0
+	var player_paint := Color("#f5a623")
+
+	func set_player_paint(paint: Color) -> void:
+		player_paint = paint
+		queue_redraw()
 
 	func set_progress(player_value: float, rival_value: float) -> void:
 		player_progress = clampf(player_value, 0.0, 1.0)
@@ -22,7 +27,7 @@ class DragTrack extends Control:
 		var finish_x := w - 24.0
 		for y in range(12, 180, 12):
 			draw_rect(Rect2(Vector2(finish_x, y), Vector2(8, 6)), Color.WHITE if (y / 12) % 2 == 0 else Color("#202a35"))
-		_draw_car(28.0 + player_progress * maxf(0.0, w - 105.0), 48.0, Color("#f5a623"))
+		_draw_car(28.0 + player_progress * maxf(0.0, w - 105.0), 48.0, player_paint)
 		_draw_car(28.0 + rival_progress * maxf(0.0, w - 105.0), 142.0, Color("#38a8e8"))
 
 	func _draw_car(x: float, center_y: float, paint: Color) -> void:
@@ -58,6 +63,7 @@ var last_result := "No races completed"
 var owned_cars: Array = ["Street Compact"]
 var active_car := "Street Compact"
 var car_upgrades: Dictionary = {}
+var car_paints: Dictionary = {}
 var car_max_speed := 290.0
 var car_acceleration := 23.0
 var garage_return_to_career := false
@@ -350,6 +356,10 @@ func _show_garage() -> void:
 	upgrades_button.add_theme_color_override("font_color", Color.WHITE)
 	upgrades_button.pressed.connect(_show_upgrades)
 	section_panel.add_child(upgrades_button)
+	var customize_button := _make_button("CUSTOMIZE CAR", Color("#2675a8"))
+	customize_button.add_theme_color_override("font_color", Color.WHITE)
+	customize_button.pressed.connect(_show_customization)
+	section_panel.add_child(customize_button)
 	var back_button := _make_button("BACK", Color("#263545"))
 	back_button.add_theme_color_override("font_color", Color.WHITE)
 	if garage_return_to_career:
@@ -357,6 +367,46 @@ func _show_garage() -> void:
 	else:
 		back_button.pressed.connect(_show_menu)
 	section_panel.add_child(back_button)
+
+func _paint_catalog() -> Array:
+	return [
+		{"name": "Racing Orange", "color": "#f5a623"},
+		{"name": "Midnight Black", "color": "#171b22"},
+		{"name": "Rally Red", "color": "#e53935"},
+		{"name": "Electric Blue", "color": "#168bd2"},
+		{"name": "Pearl White", "color": "#e9edf2"},
+		{"name": "Emerald Green", "color": "#159b62"},
+		{"name": "Royal Purple", "color": "#8146b5"}
+	]
+
+func _show_customization() -> void:
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	title_label.text = "CAR CUSTOMIZATION"
+	var current_paint := str(car_paints.get(active_car, "#f5a623"))
+	status_label.text = "%s  •  Choose your paint" % active_car
+	_clear_section()
+	_add_section_label("PAINT OPTIONS  •  FREE")
+	for paint in _paint_catalog():
+		var paint_name := str(paint["name"])
+		var paint_color := str(paint["color"])
+		var caption := "SELECTED  •  " + paint_name if current_paint == paint_color else paint_name
+		var paint_button := _make_button(caption, Color(paint_color))
+		paint_button.add_theme_color_override("font_color", Color("#101722") if paint_color != "#171b22" else Color.WHITE)
+		paint_button.pressed.connect(_select_paint.bind(paint_color))
+		section_panel.add_child(paint_button)
+	var back_button := _make_button("BACK TO GARAGE", Color("#263545"))
+	back_button.add_theme_color_override("font_color", Color.WHITE)
+	back_button.pressed.connect(_show_garage)
+	section_panel.add_child(back_button)
+
+func _select_paint(paint_color: String) -> void:
+	car_paints[active_car] = paint_color
+	if is_instance_valid(track_visual):
+		track_visual.set_player_paint(Color(paint_color))
+	_save_career()
+	_show_customization()
 
 func _upgrade_catalog() -> Array:
 	return [
@@ -516,6 +566,7 @@ func _update_hud() -> void:
 	gear_label.text = "GEAR  %d" % gear
 	player_bar.value = minf(player_distance, TRACK_LENGTH)
 	rival_bar.value = minf(rival_distance, TRACK_LENGTH)
+	track_visual.set_player_paint(Color(str(car_paints.get(active_car, "#f5a623"))))
 	track_visual.set_progress(player_distance / TRACK_LENGTH, rival_distance / TRACK_LENGTH)
 
 func _finish_race() -> void:
@@ -561,6 +612,7 @@ func _load_career_save() -> void:
 	owned_cars = save.get_value("garage", "owned_cars", ["Street Compact"])
 	active_car = str(save.get_value("garage", "active_car", "Street Compact"))
 	car_upgrades = save.get_value("garage", "car_upgrades", {})
+	car_paints = save.get_value("garage", "car_paints", {})
 	if not owned_cars.has("Street Compact"):
 		owned_cars.append("Street Compact")
 	if not owned_cars.has(active_car):
@@ -577,6 +629,7 @@ func _save_career() -> void:
 	save.set_value("garage", "owned_cars", owned_cars)
 	save.set_value("garage", "active_car", active_car)
 	save.set_value("garage", "car_upgrades", car_upgrades)
+	save.set_value("garage", "car_paints", car_paints)
 	var error := save.save("user://career_save.cfg")
 	if error != OK:
 		push_warning("Could not save career progress.")
