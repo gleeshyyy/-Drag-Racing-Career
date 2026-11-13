@@ -509,6 +509,18 @@ func _show_career_dashboard() -> void:
 		team_standings_button.add_theme_color_override("font_color", Color.WHITE)
 		team_standings_button.pressed.connect(_show_professional_team_standings)
 		section_panel.add_child(team_standings_button)
+	if international_pathway_unlocked:
+		var international_button := _make_button("INTERNATIONAL CHAMPIONSHIP", Color("#c17a28"))
+		international_button.pressed.connect(_show_international_championship)
+		section_panel.add_child(international_button)
+	if superstar_pathway_unlocked:
+		var superstar_button := _make_button("SUPERSTAR CHAMPIONSHIP", Color("#d6a52d"))
+		superstar_button.pressed.connect(_show_superstar_championship)
+		section_panel.add_child(superstar_button)
+		var hall_button := _make_button("GLOBAL HALL OF FAME", Color("#34485d"))
+		hall_button.add_theme_color_override("font_color", Color.WHITE)
+		hall_button.pressed.connect(_show_global_hall_of_fame)
+		section_panel.add_child(hall_button)
 	if national_pathway_unlocked:
 		var national_button := _make_button("NATIONAL CHAMPIONSHIP", Color("#c17a28"))
 		national_button.pressed.connect(_show_national_championship)
