@@ -101,6 +101,7 @@ var last_result := "No races completed"
 var story_stage := 0
 var story_completed := false
 var last_story_message := ""
+var story_race_active := false
 var active_jasper_job := ""
 var jasper_job_progress := 0
 var completed_jasper_jobs: Array = []
@@ -1327,7 +1328,7 @@ func _show_story_missions() -> void:
 	race_panel.hide()
 	section_panel.show()
 	title_label.text = "STORY & MISSIONS"
-	status_label.text = "JASPER'S CONNECTIONS  •  YOUR CAREER STARTS HERE"
+	status_label.text = "JASPER'S CONNECTIONS  •  THE UNDERGROUND CIRCUIT"
 	_clear_section()
 	if story_stage == 0:
 		_add_section_label("CHAPTER 1  |  A FRESH START")
@@ -1341,31 +1342,77 @@ func _show_story_missions() -> void:
 			_show_story_missions()
 		)
 		section_panel.add_child(begin_button)
-	else:
+	elif story_stage <= 4:
 		_add_section_label("CHAPTER 1  |  A FRESH START")
 		if story_stage == 1:
 			_add_section_label("MISSION 1  |  PROVE YOURSELF")
-			_add_section_label("Jasper: I can get you started. Win your first career race and show them you belong.")
+			_add_section_label("Jasper: Win your first career race and show them you belong.")
 			_add_section_label("OBJECTIVE  |  Win 1 Career race")
 		elif story_stage == 2:
 			_add_section_label("MISSION 2  |  BUILD A NAME")
-			_add_section_label("Jasper has noticed your first result. Now prove it wasn't a one-off. Keep winning and build your reputation.")
+			_add_section_label("Jasper has noticed your first result. Now prove it wasn't a one-off.")
 			_add_section_label("OBJECTIVE  |  Win 3 Career races in total")
 		elif story_stage == 3:
 			_add_section_label("MISSION 3  |  BIGGER OPPORTUNITIES")
-			_add_section_label("Your name is starting to travel. Jasper has heard that a more serious racing organizer is watching. Reach 50 reputation and win 5 Career races.")
+			_add_section_label("A serious racing organizer is watching. Reach 50 reputation and win 5 Career races.")
 			_add_section_label("OBJECTIVE  |  5 Career wins and 50 reputation")
 		else:
 			_add_section_label("CHAPTER 1 COMPLETE")
-			_add_section_label("You've earned your place in the underground scene. Jasper's network can now open the door to bigger opportunities. The next chapter will expand your story.")
-		if last_story_message != "":
-			_add_section_label(last_story_message)
-		_add_section_label("CAREER WINS  |  %d / 5" % [career_wins])
-		_add_section_label("REPUTATION  |  %d / 50" % career_reputation)
+			_add_section_label("Jasper: You proved yourself. Rico Vale controls a bigger part of the underground circuit. Keep your head straight — his races are serious.")
+			_add_section_label("CHAPTER 2 UNLOCKED  |  THE UNDERGROUND CIRCUIT")
+			var meet_button := _make_button("MEET RICO VALE", Color("#f5a623"))
+			meet_button.pressed.connect(func():
+				story_stage = 5
+				last_story_message = "Rico Vale: Jasper says you can drive. Viktor Kane runs this circuit. Beat him and you earn a place here."
+				_save_career()
+				_show_story_missions()
+			)
+			section_panel.add_child(meet_button)
+		if story_stage < 4:
+			_add_section_label("CAREER WINS  |  %d / 5" % career_wins)
+			_add_section_label("REPUTATION  |  %d / 50" % career_reputation)
+	else:
+		_add_section_label("CHAPTER 2  |  THE UNDERGROUND CIRCUIT")
+		if story_stage == 5:
+			_add_section_label("MISSION 1  |  THE FIRST IMPRESSION")
+			_add_section_label("Rico: Viktor Kane is waiting at the quarter-mile strip. Give him a reason to remember your name.")
+			_add_section_label("OBJECTIVE  |  Win the Quarter-Mile Sprint against Viktor Kane")
+			_add_section_label("REWARD  |  $1,000 and +10 reputation")
+			_add_story_race_button("RACE VIKTOR  |  QUARTER-MILE", "quarter_mile")
+		elif story_stage == 6:
+			_add_section_label("MISSION 2  |  NO EASY WINS")
+			_add_section_label("Viktor: Beginner's luck. Let's see you handle a faster field. Rico has arranged a Pro Quarter-Mile rematch.")
+			_add_section_label("OBJECTIVE  |  Win the Pro Quarter-Mile against Viktor Kane")
+			_add_section_label("REWARD  |  $1,800 and +15 reputation")
+			_add_story_race_button("REMATCH VIKTOR  |  PRO QUARTER", "pro_quarter")
+		elif story_stage == 7:
+			_add_section_label("MISSION 3  |  OWN THE NIGHT")
+			_add_section_label("Rico: One last test. The half-mile final is for drivers who can hold their nerve and speed. Win, and the circuit is yours.")
+			_add_section_label("OBJECTIVE  |  Win the Half-Mile Challenge against Viktor Kane")
+			_add_section_label("REWARD  |  $3,500 and +25 reputation")
+			_add_story_race_button("UNDERGROUND FINAL  |  HALF-MILE", "half_mile")
+		else:
+			_add_section_label("CHAPTER 2 COMPLETE  |  CIRCUIT CHAMPION")
+			_add_section_label("You defeated Viktor Kane and won Rico Vale's underground final. The circuit knows your name. Your next step is to turn underground success into a professional racing career.")
+			_add_section_label("FINAL REWARD  |  $3,500 and +25 reputation")
+	if last_story_message != "":
+		_add_section_label(last_story_message)
 	var back_button := _make_button("BACK TO CAREER", Color("#263545"))
 	back_button.add_theme_color_override("font_color", Color.WHITE)
 	back_button.pressed.connect(_show_career_dashboard)
 	section_panel.add_child(back_button)
+
+func _add_story_race_button(caption: String, event_id: String) -> void:
+	var race_button := _make_button(caption, Color("#f5a623"))
+	race_button.pressed.connect(func():
+		selected_event_id = event_id
+		race_event_name = str(_get_selected_event()["name"])
+		story_race_active = true
+		career_race = true
+		_save_career()
+		_start_race()
+	)
+	section_panel.add_child(race_button)
 
 func _update_story_progress() -> void:
 	if story_stage == 1 and career_wins >= 1:
@@ -1383,9 +1430,26 @@ func _update_story_progress() -> void:
 		story_completed = true
 		career_cash += 2500
 		career_reputation += 20
-		last_story_message = "CHAPTER 1 COMPLETE: You earned $2,500 and access to the next stage of your racing career."
+		last_story_message = "CHAPTER 1 COMPLETE: You earned $2,500. Jasper has connected you to Rico Vale."
+	elif story_race_active and story_stage == 5 and selected_event_id == "quarter_mile":
+		story_stage = 6
+		career_cash += 1000
+		career_reputation += 10
+		last_story_message = "MISSION COMPLETE: Viktor Kane is beaten. Rico pays $1,000 and puts you on the Pro Quarter-Mile card."
+	elif story_race_active and story_stage == 6 and selected_event_id == "pro_quarter":
+		story_stage = 7
+		career_cash += 1800
+		career_reputation += 15
+		last_story_message = "MISSION COMPLETE: You beat Viktor in the rematch. Rico pays $1,800 and books the underground final."
+	elif story_race_active and story_stage == 7 and selected_event_id == "half_mile":
+		story_stage = 8
+		career_cash += 3500
+		career_reputation += 25
+		story_completed = true
+		last_story_message = "CHAPTER 2 COMPLETE: You defeated Viktor Kane and earned $3,500 plus 25 reputation. You are the Underground Circuit Champion."
 	else:
 		return
+	story_race_active = false
 	_save_career()
 
 func _jasper_job_catalog() -> Array:
@@ -1683,12 +1747,14 @@ func _start_race() -> void:
 		var entry_fee := _event_entry_fee(selected_event_id)
 		if career_reputation < _event_min_reputation(selected_event_id):
 			career_race = false
+			story_race_active = false
 			race_countdown_active = false
 			status_label.text = "This event is locked. Build more reputation first."
 			_show_event_selection()
 			return
 		if career_cash < entry_fee:
 			career_race = false
+			story_race_active = false
 			race_countdown_active = false
 			status_label.text = "You need $%s for this event's entry fee." % str(entry_fee)
 			_show_event_selection()
@@ -1722,7 +1788,7 @@ func _start_race() -> void:
 	_roll_track_condition()
 	throttle_down = false
 	if career_race:
-		rival_name = rival_challenge_name if rival_challenge_active else str(rival_names[(career_wins + career_losses) % rival_names.size()])
+		rival_name = "Viktor Kane" if story_race_active and story_stage >= 5 and story_stage <= 7 else (rival_challenge_name if rival_challenge_active else str(rival_names[(career_wins + career_losses) % rival_names.size()]))
 		var selected_record: Dictionary = rival_records.get(rival_name, {})
 		var rival_car := str(selected_record.get("car", "Street Compact"))
 		var rival_upgrades := int(selected_record.get("upgrade_level", 0))
@@ -1871,6 +1937,9 @@ func _finish_race() -> void:
 			career_losses += 1
 			current_win_streak = 0
 			last_result = "Defeat vs " + rival_name
+			if story_race_active:
+				last_story_message = "Viktor Kane: Not tonight. Rico will give you another shot when you're ready."
+				story_race_active = false
 		_update_jasper_job_progress()
 		_update_team_contract(won)
 		_advance_career_month()
@@ -1888,6 +1957,7 @@ func _finish_race() -> void:
 			rival_challenge_active = false
 			rival_challenge_name = ""
 		career_race = false
+		story_race_active = false
 		_check_achievements(new_personal_best)
 		_save_career()
 	else:
