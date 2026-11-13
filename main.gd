@@ -1766,6 +1766,16 @@ func _enter_superstar_event(event_id: String) -> void:
 			_start_race()
 			return
 
+func _update_superstar_rival_results(player_won: bool) -> void:
+	_ensure_superstar_rivals()
+	var record: Dictionary = superstar_rival_records.get(rival_name,{})
+	if player_won:
+		record["losses"] = int(record.get("losses",0)) + 1
+	else:
+		record["wins"] = int(record.get("wins",0)) + 1
+		record["rating"] = mini(100,int(record.get("rating",96)) + 1)
+	superstar_rival_records[rival_name] = record
+
 func _update_superstar_season(player_won: bool) -> void:
 	if superstar_events_completed.has(selected_superstar_event_id):
 		superstar_season_message = "LEGENDS EVENT ALREADY COMPLETED"
@@ -2731,7 +2741,9 @@ func _start_race() -> void:
 			story_race_active = false
 			race_countdown_active = false
 			status_label.text = "You need $%s for this event's entry fee." % str(entry_fee)
-			if international_championship_active:
+			if superstar_championship_active:
+				_show_superstar_championship()
+			elif international_championship_active:
 				_show_international_championship()
 			elif national_championship_active:
 				_show_national_championship()
@@ -2877,7 +2889,7 @@ func _finish_race() -> void:
 	nitro_active = false
 	var was_career_race := career_race
 	var won := player_distance >= race_distance and player_distance >= rival_distance
-	var record_key := (selected_national_event_id if national_championship_active else (selected_professional_event_id if professional_circuit_active else selected_event_id)) if career_race else "quick_402"
+	var record_key := (selected_superstar_event_id if superstar_championship_active else (selected_international_event_id if international_championship_active else (selected_national_event_id if national_championship_active else (selected_professional_event_id if professional_circuit_active else selected_event_id)))) if career_race else "quick_402"
 	last_race_record_key = record_key
 	var previous_best := float(personal_bests.get(record_key, 0.0))
 	var new_personal_best := previous_best <= 0.0 or race_time < previous_best
@@ -2926,6 +2938,7 @@ func _finish_race() -> void:
 		career_xp += last_xp_earned
 		last_level_up = _driver_level() > old_level
 		if superstar_championship_active:
+			_update_superstar_rival_results(won)
 			_update_superstar_season(won)
 		elif international_championship_active:
 			_update_international_rival_results(won)
