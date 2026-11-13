@@ -132,6 +132,20 @@ var last_national_team_points: Dictionary = {}
 var last_national_champion := ""
 var last_national_season_number := 0
 var national_season_message := ""
+var international_pathway_unlocked := false
+var international_championship_active := false
+var selected_international_event_id := "int_402"
+var international_season_number := 1
+var international_season_points: Dictionary = {}
+var international_events_completed: Array = []
+var international_rival_names := ["Luca Moretti", "Amara Okafor", "Diego Santos", "Hana Suzuki"]
+var international_rival_records: Dictionary = {}
+var international_team_points: Dictionary = {}
+var last_international_points: Dictionary = {}
+var last_international_team_points: Dictionary = {}
+var last_international_champion := ""
+var last_international_season_number := 0
+var international_season_message := ""
 var active_jasper_job := ""
 var jasper_job_progress := 0
 var completed_jasper_jobs: Array = []
@@ -1441,6 +1455,197 @@ func _show_national_pathway() -> void:
 		var enter_button := _make_button("REGISTER FOR NATIONAL CHAMPIONSHIP", Color("#c17a28"))
 		enter_button.pressed.connect(_begin_national_story)
 		section_panel.add_child(enter_button)
+
+func _international_event_catalog() -> Array:
+	return [
+		{"id":"int_402","name":"World Quarter-Mile Invitational","distance":402.0,"reward":12000,"rival_speed":320.0,"entry_fee":4000,"points":15},
+		{"id":"int_804","name":"Continental Half-Mile Grand Prix","distance":804.0,"reward":16000,"rival_speed":326.0,"entry_fee":5500,"points":15},
+		{"id":"int_1000","name":"Global Top Speed Masters","distance":1000.0,"reward":22000,"rival_speed":332.0,"entry_fee":7000,"points":18},
+		{"id":"int_1609","name":"World Mile Endurance","distance":1609.0,"reward":28000,"rival_speed":338.0,"entry_fee":8500,"points":18},
+		{"id":"int_201","name":"International Eighth-Mile Sprint","distance":201.0,"reward":18000,"rival_speed":330.0,"entry_fee":5000,"points":15},
+		{"id":"int_final","name":"World Drag Racing Final","distance":1609.0,"reward":50000,"rival_speed":348.0,"entry_fee":12000,"points":25}
+	]
+
+func _get_international_event() -> Dictionary:
+	for event in _international_event_catalog():
+		if str(event["id"]) == selected_international_event_id:
+			return event
+	return _international_event_catalog()[0]
+
+func _ensure_international_rival_records() -> void:
+	for index in range(international_rival_names.size()):
+		var name := str(international_rival_names[index])
+		if not international_rival_records.has(name):
+			international_rival_records[name] = {"wins":0,"losses":0,"rating":90 + index * 2,"car":"Muscle V8","upgrade_level":8 + index}
+
+func _show_international_pathway() -> void:
+	var body := "INTERNATIONAL CHAMPIONSHIP PATHWAY\\n\\n"
+	body += "Your national championship victory has attracted international attention. The Global Drag Racing Federation is reviewing your application.\\n\\n"
+	body += "QUALIFICATION REQUIREMENTS\\n"
+	body += "National Championship Title  |  %s\\n" % ("COMPLETE" if international_pathway_unlocked else "LOCKED")
+	body += "Career Wins  |  %d / 40\\n" % mini(career_wins, 40)
+	body += "Driver Level  |  %d / 15\\n" % mini(_driver_level(), 15)
+	body += "Reputation  |  %d / 500\\n" % mini(career_reputation, 500)
+	var qualified := international_pathway_unlocked and career_wins >= 40 and _driver_level() >= 15 and career_reputation >= 500
+	body += "\\nSTATUS  |  %s" % ("QUALIFIED — WORLD SERIES ENTRY READY" if qualified else "INVITATION RECEIVED — COMPLETE THE REMAINING REQUIREMENTS")
+	_show_subpage("INTERNATIONAL CHAMPIONSHIP", body, "BACK TO CAREER")
+	if qualified:
+		var enter_button := _make_button("REGISTER FOR INTERNATIONAL CHAMPIONSHIP", Color("#c17a28"))
+		enter_button.pressed.connect(_begin_international_story)
+		section_panel.add_child(enter_button)
+
+func _begin_international_story() -> void:
+	if not (international_pathway_unlocked and career_wins >= 40 and _driver_level() >= 15 and career_reputation >= 500):
+		_show_international_pathway()
+		return
+	if story_stage < 17:
+		story_stage = 17
+		last_story_message = "Global Drag Racing Federation: Your international licence is approved. The world championship begins now."
+	_save_career()
+	_show_story_missions()
+
+func _show_international_championship() -> void:
+	var qualified := international_pathway_unlocked and career_wins >= 40 and _driver_level() >= 15 and career_reputation >= 500
+	if not qualified:
+		_show_international_pathway()
+		return
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	title_label.text = "INTERNATIONAL CHAMPIONSHIP"
+	status_label.text = "GLOBAL DRAG RACING FEDERATION  |  SEASON %d" % international_season_number
+	_clear_section()
+	_add_section_label("WORLD SERIES LICENCE  |  ENTRY APPROVED")
+	_add_section_label("SEASON PROGRESS  |  %d / %d events completed" % [international_events_completed.size(), _international_event_catalog().size()])
+	_add_section_label("TEAM  |  %s" % (current_team if current_team != "" else "INDEPENDENT"))
+	for event in _international_event_catalog():
+		var event_id := str(event["id"])
+		_add_section_label("%s  |  %d m  |  Prize $%s  |  Entry $%s  |  %d pts" % [str(event["name"]), int(event["distance"]), str(event["reward"]), str(event["entry_fee"]), int(event["points"])])
+		var completed := international_events_completed.has(event_id)
+		var event_button := _make_button(("COMPLETED  |  " if completed else "ENTER  |  ") + str(event["name"]), Color("#34485d") if completed else Color("#c17a28"))
+		event_button.disabled = completed
+		event_button.pressed.connect(_enter_international_event.bind(event_id))
+		section_panel.add_child(event_button)
+	var standings_button := _make_button("VIEW INTERNATIONAL STANDINGS", Color("#2675a8"))
+	standings_button.add_theme_color_override("font_color", Color.WHITE)
+	standings_button.pressed.connect(_show_international_standings)
+	section_panel.add_child(standings_button)
+	var team_button := _make_button("VIEW WORLD TEAM CHAMPIONSHIP", Color("#34485d"))
+	team_button.pressed.connect(_show_international_team_standings)
+	section_panel.add_child(team_button)
+	var back_button := _make_button("BACK TO CAREER", Color("#263545"))
+	back_button.add_theme_color_override("font_color", Color.WHITE)
+	back_button.pressed.connect(_show_career_dashboard)
+	section_panel.add_child(back_button)
+
+func _enter_international_event(event_id: String) -> void:
+	if international_events_completed.has(event_id):
+		return
+	for event in _international_event_catalog():
+		if str(event["id"]) == event_id:
+			selected_international_event_id = event_id
+			international_championship_active = true
+			career_race = true
+			_start_race()
+			return
+
+func _update_international_rival_results(player_won: bool) -> void:
+	_ensure_international_rival_records()
+	var opponent: Dictionary = international_rival_records.get(rival_name, {"wins":0,"losses":0,"rating":90})
+	if player_won:
+		opponent["losses"] = int(opponent.get("losses",0)) + 1
+	else:
+		opponent["wins"] = int(opponent.get("wins",0)) + 1
+		opponent["rating"] = mini(100, int(opponent.get("rating",90)) + 1)
+	international_rival_records[rival_name] = opponent
+	for name in international_rival_names:
+		if name == rival_name:
+			continue
+		var record: Dictionary = international_rival_records.get(name, {"wins":0,"losses":0,"rating":90})
+		if randf() < 0.6:
+			record["wins"] = int(record.get("wins",0)) + 1
+		else:
+			record["losses"] = int(record.get("losses",0)) + 1
+		international_rival_records[name] = record
+
+func _update_international_season(player_won: bool) -> void:
+	international_season_message = ""
+	if international_events_completed.has(selected_international_event_id):
+		international_season_message = "INTERNATIONAL EVENT ALREADY COMPLETED — NO EXTRA POINTS"
+		return
+	var event := _get_international_event()
+	international_events_completed.append(selected_international_event_id)
+	var earned_points := int(event["points"]) if player_won else 5
+	international_season_points["YOU"] = int(international_season_points.get("YOU",0)) + earned_points
+	international_season_message = "WORLD CHAMPIONSHIP POINTS  |  +%d" % earned_points
+	var player_team := current_team if current_team != "" else "Independent"
+	international_team_points[player_team] = int(international_team_points.get(player_team,0)) + earned_points
+	var rival_teams := ["Scuderia Milano","Pan-African Velocity","Santos Motorsport","Tokyo Apex"]
+	for index in range(international_rival_names.size()):
+		var name := str(international_rival_names[index])
+		var rival_points := 15 if randf() < 0.6 else 5
+		international_season_points[name] = int(international_season_points.get(name,0)) + rival_points
+		var rival_team := str(rival_teams[index])
+		international_team_points[rival_team] = int(international_team_points.get(rival_team,0)) + rival_points
+	if international_events_completed.size() >= _international_event_catalog().size():
+		var rows: Array = []
+		for driver in ["YOU"] + international_rival_names:
+			rows.append({"name":driver,"points":int(international_season_points.get(driver,0))})
+		rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
+		last_international_champion = str(rows[0]["name"])
+		last_international_points = international_season_points.duplicate(true)
+		last_international_team_points = international_team_points.duplicate(true)
+		last_international_season_number = international_season_number
+		if last_international_champion == "YOU":
+			career_cash += 75000
+			career_reputation += 150
+			story_stage = 18
+			last_story_message = "CHAPTER 5 COMPLETE: You conquered the World Drag Racing Championship."
+			international_season_message = "WORLD CHAMPION! $75,000 + 150 REP. GLOBAL TITLE SECURED."
+			_add_career_notification("WORLD CHAMPION: You won the International Drag Racing title.")
+		else:
+			international_season_message = "INTERNATIONAL SEASON %d CHAMPION: %s. The next season awaits." % [international_season_number,last_international_champion]
+		international_season_number += 1
+		international_season_points = {}
+		international_events_completed = []
+		international_team_points = {}
+	_save_career()
+
+func _show_international_standings() -> void:
+	var display: Dictionary = international_season_points
+	var season_display := international_season_number
+	var heading := "CURRENT INTERNATIONAL SEASON"
+	if international_events_completed.is_empty() and last_international_season_number > 0:
+		display = last_international_points
+		season_display = last_international_season_number
+		heading = "LAST WORLD CHAMPION  |  " + last_international_champion
+	var rows: Array = [{"name":"YOU","points":int(display.get("YOU",0))}]
+	for name in international_rival_names:
+		rows.append({"name":name,"points":int(display.get(name,0))})
+	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
+	var body := "%s\\nSEASON %d\\n\\n" % [heading,season_display]
+	for index in range(rows.size()):
+		body += "%d. %s — %d points\\n" % [index + 1,str(rows[index]["name"]),int(rows[index]["points"])]
+	body += "\\nEVENTS COMPLETED  |  %d / %d" % [international_events_completed.size(),_international_event_catalog().size()]
+	_show_subpage("INTERNATIONAL STANDINGS",body,"BACK TO CAREER")
+
+func _show_international_team_standings() -> void:
+	var display: Dictionary = international_team_points
+	var heading := "CURRENT WORLD TEAM TABLE"
+	if display.is_empty() and not last_international_team_points.is_empty():
+		display = last_international_team_points
+		heading = "LAST WORLD TEAM CHAMPIONSHIP"
+	var rows: Array = []
+	for team in display.keys():
+		rows.append({"name":str(team),"points":int(display[team])})
+	rows.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["points"]) > int(b["points"]))
+	var body := heading + "\\n\\n"
+	if rows.is_empty():
+		body += "Team points will appear after the first international event."
+	else:
+		for index in range(rows.size()):
+			body += "%d. %s — %d points\\n" % [index + 1,str(rows[index]["name"]),int(rows[index]["points"])]
+	_show_subpage("WORLD TEAM CHAMPIONSHIP",body,"BACK TO CAREER")
 
 func _show_professional_standings() -> void:
 	var display_points: Dictionary = professional_season_points
