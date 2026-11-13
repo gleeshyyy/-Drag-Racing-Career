@@ -3549,6 +3549,17 @@ func _play_sfx(effect: String) -> void:
 	player.finished.connect(player.queue_free)
 	player.play()
 
+func _format_number(value: int) -> String:
+	var raw := str(abs(value))
+	var formatted := ""
+	for index in range(raw.length()):
+		if index > 0 and (raw.length() - index) % 3 == 0:
+			formatted += ","
+		formatted += raw.substr(index, 1)
+	if value < 0:
+		formatted = "-" + formatted
+	return formatted
+
 func _dashboard_card_style(accent: Color) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color("#101720")
