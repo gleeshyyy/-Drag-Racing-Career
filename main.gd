@@ -1105,8 +1105,7 @@ func _show_rival_challenges() -> void:
 		section_panel.add_child(challenge_button)
 	var back_button := _make_button("BACK TO CAREER", Color("#263545"))
 	back_button.add_theme_color_override("font_color", Color.WHITE)
-	var back_action: Callable = _show_menu if back_to_menu else _show_career_dashboard
-	back_button.pressed.connect(back_action)
+	back_button.pressed.connect(_show_career_dashboard)
 	section_panel.add_child(back_button)
 
 func _event_catalog() -> Array:
@@ -1785,7 +1784,8 @@ func _show_subpage(page_title: String, body: String, back_caption: String, back_
 	content_label.add_theme_constant_override("line_spacing", 5)
 	content_scroll.add_child(content_label)
 	var back_button := _make_button(back_caption, Color("#f5a623"))
-	back_button.pressed.connect(_show_career_dashboard)
+	var back_action: Callable = _show_menu if back_to_menu else _show_career_dashboard
+	back_button.pressed.connect(back_action)
 	section_panel.add_child(back_button)
 
 func _add_story_race_button(button_text: String, event_id: String) -> void:
