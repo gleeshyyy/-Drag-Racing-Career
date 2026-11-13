@@ -1231,6 +1231,16 @@ func _ensure_national_rival_records() -> void:
 		if not national_rival_records.has(name):
 			national_rival_records[name] = {"wins":0,"losses":0,"rating":82 + index * 3,"car":"Muscle V8","upgrade_level":5 + index}
 
+func _begin_national_story() -> void:
+	if not (national_pathway_unlocked and career_wins >= 25 and _driver_level() >= 10 and career_reputation >= 300):
+		_show_national_pathway()
+		return
+	if story_stage < 15:
+		story_stage = 15
+		last_story_message = "National Drag Association: Your qualification is approved. The national title is now within reach."
+	_save_career()
+	_show_story_missions()
+
 func _show_national_championship() -> void:
 	var qualified := national_pathway_unlocked and career_wins >= 25 and _driver_level() >= 10 and career_reputation >= 300
 	if not qualified:
@@ -1326,6 +1336,8 @@ func _update_national_season(player_won: bool) -> void:
 		if last_national_champion == "YOU":
 			career_cash += 30000
 			career_reputation += 100
+			story_stage = 16
+			last_story_message = "CHAPTER 4 COMPLETE: You won the National Drag Association championship."
 			national_season_message = "NATIONAL CHAMPION! $30,000 + 100 REP. NATIONAL TITLE SECURED."
 			_add_career_notification("NATIONAL CHAMPION: You won the National Drag Association title.")
 		else:
@@ -1382,11 +1394,11 @@ func _show_national_pathway() -> void:
 	body += "Reputation  |  %d / 300\n" % mini(career_reputation, 300)
 	var qualified := national_pathway_unlocked and career_wins >= 25 and _driver_level() >= 10 and career_reputation >= 300
 	body += "\nSTATUS  |  %s" % ("QUALIFIED — NATIONAL SERIES ENTRY READY" if qualified else "INVITATION SECURED — COMPLETE THE REMAINING REQUIREMENTS")
+	_show_subpage("NATIONAL CHAMPIONSHIP", body, "BACK TO CAREER")
 	if qualified:
 		var enter_button := _make_button("REGISTER FOR NATIONAL CHAMPIONSHIP", Color("#c17a28"))
-		enter_button.pressed.connect(_show_national_championship)
+		enter_button.pressed.connect(_begin_national_story)
 		section_panel.add_child(enter_button)
-	_show_subpage("NATIONAL CHAMPIONSHIP", body, "BACK TO CAREER")
 
 func _show_professional_standings() -> void:
 	var display_points: Dictionary = professional_season_points
@@ -1862,11 +1874,23 @@ func _show_story_missions() -> void:
 			_add_section_label("Win each round to secure the inaugural professional championship.")
 			_add_section_label("CHAMPIONSHIP WINS  |  %d / 3" % pro_championship_points)
 			_add_story_race_button("ENTER ROUND %d" % (round_index + 1), str(round["id"]))
-		else:
-			_add_section_label("PROFESSIONAL CHAMPION")
+		elif story_stage == 14:
+			_add_section_label("CHAPTER 3 COMPLETE  |  PROFESSIONAL CHAMPION")
 			_add_section_label("You earned your National Drag Association licence and won your first sanctioned professional championship. Your career has entered the professional ranks.")
 			_add_section_label("PRO LICENCE  |  ACTIVE")
 			_add_section_label("CHAMPIONSHIP WINS  |  %d / 3" % pro_championship_points)
+		else:
+			_add_section_label("CHAPTER 4  |  THE NATIONAL STAGE")
+			if story_stage == 15:
+				_add_section_label("Your professional season title secured an invitation. After meeting the career requirements, the National Drag Association has approved your national entry.")
+				_add_section_label("OBJECTIVE  |  Compete across all six national events and win the overall championship.")
+				var national_story_button := _make_button("ENTER NATIONAL CHAMPIONSHIP", Color("#c17a28"))
+				national_story_button.pressed.connect(_show_national_championship)
+				section_panel.add_child(national_story_button)
+			else:
+				_add_section_label("CHAPTER 4 COMPLETE  |  NATIONAL CHAMPION")
+				_add_section_label("You conquered the national series and established yourself among the country's elite drag racers.")
+				_add_section_label("NEXT  |  International competition awaits.")
 	if last_story_message != "":
 		_add_section_label(last_story_message)
 	var back_button := _make_button("BACK TO CAREER", Color("#263545"))
@@ -2243,6 +2267,7 @@ func _start_race() -> void:
 			return
 		if career_cash < entry_fee:
 			career_race = false
+			national_championship_active = false
 			story_race_active = false
 			race_countdown_active = false
 			status_label.text = "You need $%s for this event's entry fee." % str(entry_fee)
