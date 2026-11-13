@@ -35,7 +35,7 @@ const server = http.createServer((req, res) => {
     await page.locator('[data-go="garage"]').click();
     assert.match(await page.locator('#screen').innerText(), /VEHICLE DEALERSHIP/);
     await page.locator('[data-go="dashboard"]').click();
-    await page.locator('[data-go="racing"]').click();
+    await page.locator('[data-go="racing"]').first().click();
     await page.locator('#camera-toggle').click();
     assert.match(await page.locator('.race-track').getAttribute('class'), /camera-top/);
     await page.locator('#camera-toggle').click();
