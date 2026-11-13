@@ -597,14 +597,14 @@ func _show_rivals() -> void:
 	var body := "YOUR RIVALS\n\n"
 	for name in rival_names:
 		var record: Dictionary = rival_records.get(name, {})
-		body += "%s\nWins: %d  Losses: %d\nPoints: %d  Reputation: %d\nCar rating: %d/100\n\n" % [name, int(record.get("wins", 0)), int(record.get("losses", 0)), int(record.get("points", 0)), int(record.get("reputation", 0)), int(record.get("rating", 50))]
+		body += "%s\nWins: %d  Losses: %d\nPoints: %d  Reputation: %d\nCar: %s\nUpgrades: %d  Rating: %d/100\n\n" % [name, int(record.get("wins", 0)), int(record.get("losses", 0)), int(record.get("points", 0)), int(record.get("reputation", 0)), str(record.get("car", "Street Compact")), int(record.get("upgrade_level", 0)), int(record.get("rating", 50))]
 	_show_subpage("RIVALS", body, "BACK TO CAREER")
 
 func _ensure_rival_records() -> void:
 	for index in range(rival_names.size()):
 		var name := str(rival_names[index])
 		if not rival_records.has(name):
-			rival_records[name] = {"wins": 0, "losses": 0, "points": 0, "reputation": 0, "rating": 50 + index * 3}
+			rival_records[name] = {"wins": 0, "losses": 0, "points": 0, "reputation": 0, "rating": 50 + index * 3, "funds": 0, "car": "Street Compact", "upgrade_level": 0}
 
 func _show_subpage(page_title: String, body: String, back_caption: String) -> void:
 	menu_panel.hide()
@@ -824,24 +824,41 @@ func _update_rival_career_results(player_won: bool) -> void:
 	if player_won:
 		opponent["losses"] = int(opponent.get("losses", 0)) + 1
 	else:
-		opponent["wins"] = int(opponent.get("wins", 0)) + 1
-		opponent["points"] = int(opponent.get("points", 0)) + 10
-		opponent["reputation"] = int(opponent.get("reputation", 0)) + 5
-		opponent["rating"] = mini(100, int(opponent.get("rating", 50)) + 1)
+		_record_rival_victory(opponent, race_reward)
 	rival_records[rival_name] = opponent
 	for name in rival_names:
 		if str(name) == rival_name:
 			continue
 		var record: Dictionary = rival_records.get(name, {})
 		if randf() < 0.55:
-			record["wins"] = int(record.get("wins", 0)) + 1
-			record["points"] = int(record.get("points", 0)) + 10
-			record["reputation"] = int(record.get("reputation", 0)) + 4
-			if randf() < 0.25:
-				record["rating"] = mini(100, int(record.get("rating", 50)) + 1)
+			_record_rival_victory(record, randi_range(500, 1200))
 		else:
 			record["losses"] = int(record.get("losses", 0)) + 1
 		rival_records[str(name)] = record
+
+func _record_rival_victory(record: Dictionary, prize: int) -> void:
+	record["wins"] = int(record.get("wins", 0)) + 1
+	record["points"] = int(record.get("points", 0)) + 10
+	record["reputation"] = int(record.get("reputation", 0)) + 5
+	record["funds"] = int(record.get("funds", 0)) + prize
+	var rating := int(record.get("rating", 50))
+	var upgrade_level := int(record.get("upgrade_level", 0))
+	var car_name := str(record.get("car", "Street Compact"))
+	var upgrade_cost := 900 + upgrade_level * 550
+	if upgrade_level < 12 and int(record["funds"]) >= upgrade_cost and randf() < 0.65:
+		record["funds"] = int(record["funds"]) - upgrade_cost
+		upgrade_level += 1
+		rating = mini(100, rating + randi_range(2, 4))
+		record["upgrade_level"] = upgrade_level
+	elif car_name == "Street Compact" and int(record["funds"]) >= 2500 and rating >= 65:
+		record["funds"] = int(record["funds"]) - 2500
+		record["car"] = "Turbo Coupe"
+		rating = mini(100, rating + 5)
+	elif car_name == "Turbo Coupe" and int(record["funds"]) >= 6000 and rating >= 82:
+		record["funds"] = int(record["funds"]) - 6000
+		record["car"] = "Muscle V8"
+		rating = mini(100, rating + 7)
+	record["rating"] = rating
 
 func _load_career_save() -> void:
 	var save := ConfigFile.new()
