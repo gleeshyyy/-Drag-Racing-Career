@@ -98,6 +98,9 @@ var last_achievement_message := ""
 var last_xp_earned := 0
 var last_level_up := false
 var last_result := "No races completed"
+var story_stage := 0
+var story_completed := false
+var last_story_message := ""
 var owned_cars: Array = ["Street Compact"]
 var active_car := "Street Compact"
 var car_upgrades: Dictionary = {}
@@ -353,6 +356,10 @@ func _show_career_dashboard() -> void:
 	_add_section_label("Wins: %d     Losses: %d" % [career_wins, career_losses])
 	_add_section_label("Cash: $%s     Reputation: %d" % [str(career_cash), career_reputation])
 	_add_section_label("LAST RESULT  |  " + last_result)
+	var story_button := _make_button("STORY & MISSIONS", Color("#34485d"))
+	story_button.add_theme_color_override("font_color", Color.WHITE)
+	story_button.pressed.connect(_show_story_missions)
+	section_panel.add_child(story_button)
 	var history_button := _make_button("RACE HISTORY", Color("#34485d"))
 	history_button.add_theme_color_override("font_color", Color.WHITE)
 	history_button.pressed.connect(_show_race_history)
@@ -987,6 +994,72 @@ func _show_subpage(page_title: String, body: String, back_caption: String) -> vo
 	back_button.pressed.connect(_show_career_dashboard)
 	section_panel.add_child(back_button)
 
+func _show_story_missions() -> void:
+	menu_panel.hide()
+	race_panel.hide()
+	section_panel.show()
+	title_label.text = "STORY & MISSIONS"
+	status_label.text = "JASPER'S CONNECTIONS  •  YOUR CAREER STARTS HERE"
+	_clear_section()
+	if story_stage == 0:
+		_add_section_label("CHAPTER 1  |  A FRESH START")
+		_add_section_label("Your old life has fallen apart. You lost your job, your marriage ended, and the court has ordered you to pay monthly child support. You need a way to rebuild.")
+		_add_section_label("Jasper, an old friend, calls with a way in. He knows the underground racing scene and can get you small jobs, but he expects you to prove yourself.")
+		var begin_button := _make_button("CALL JASPER", Color("#f5a623"))
+		begin_button.pressed.connect(func():
+			story_stage = 1
+			last_story_message = "Jasper: I can get you started. Win your first career race and show them you belong."
+			_save_career()
+			_show_story_missions()
+		)
+		section_panel.add_child(begin_button)
+	else:
+		_add_section_label("CHAPTER 1  |  A FRESH START")
+		if story_stage == 1:
+			_add_section_label("MISSION 1  |  PROVE YOURSELF")
+			_add_section_label("Jasper: I can get you started. Win your first career race and show them you belong.")
+			_add_section_label("OBJECTIVE  |  Win 1 Career race")
+		elif story_stage == 2:
+			_add_section_label("MISSION 2  |  BUILD A NAME")
+			_add_section_label("Jasper has noticed your first result. Now prove it wasn't a one-off. Keep winning and build your reputation.")
+			_add_section_label("OBJECTIVE  |  Win 3 Career races in total")
+		elif story_stage == 3:
+			_add_section_label("MISSION 3  |  BIGGER OPPORTUNITIES")
+			_add_section_label("Your name is starting to travel. Jasper has heard that a more serious racing organizer is watching. Reach 50 reputation and win 5 Career races.")
+			_add_section_label("OBJECTIVE  |  5 Career wins and 50 reputation")
+		else:
+			_add_section_label("CHAPTER 1 COMPLETE")
+			_add_section_label("You've earned your place in the underground scene. Jasper's network can now open the door to bigger opportunities. The next chapter will expand your story.")
+		if last_story_message != "":
+			_add_section_label(last_story_message)
+		_add_section_label("CAREER WINS  |  %d / 5" % [career_wins])
+		_add_section_label("REPUTATION  |  %d / 50" % career_reputation)
+	var back_button := _make_button("BACK TO CAREER", Color("#263545"))
+	back_button.add_theme_color_override("font_color", Color.WHITE)
+	back_button.pressed.connect(_show_career_dashboard)
+	section_panel.add_child(back_button)
+
+func _update_story_progress() -> void:
+	if story_stage == 1 and career_wins >= 1:
+		story_stage = 2
+		career_cash += 500
+		career_reputation += 5
+		last_story_message = "MISSION COMPLETE: Jasper pays you $500 and introduces you to more racers."
+	elif story_stage == 2 and career_wins >= 3:
+		story_stage = 3
+		career_cash += 1200
+		career_reputation += 10
+		last_story_message = "MISSION COMPLETE: Jasper rewards you with $1,200. Your name is spreading."
+	elif story_stage == 3 and career_wins >= 5 and career_reputation >= 50:
+		story_stage = 4
+		story_completed = true
+		career_cash += 2500
+		career_reputation += 20
+		last_story_message = "CHAPTER 1 COMPLETE: You earned $2,500 and access to the next stage of your racing career."
+	else:
+		return
+	_save_career()
+
 func _show_info_page(page_title: String, description: String) -> void:
 	menu_panel.hide()
 	race_panel.hide()
@@ -1278,6 +1351,7 @@ func _finish_race() -> void:
 			career_cash += race_reward
 			career_reputation += 10
 			last_result = "Victory vs " + rival_name
+			_update_story_progress()
 		else:
 			career_losses += 1
 			current_win_streak = 0
@@ -1306,6 +1380,8 @@ func _show_race_results(was_career_race: bool, won: bool, new_personal_best: boo
 	_add_section_label("FUEL REMAINING  |  %.1f%%  ( -%.2f%% used )" % [float(car_fuel.get(active_car, 100.0)), last_fuel_used])
 	_add_section_label("DISTANCE  |  %d metres" % int(race_distance))
 	_add_section_label("PRIZE MONEY  |  $%s" % str(race_reward if was_career_race and won else 0))
+	if was_career_race and last_story_message != "":
+		_add_section_label(last_story_message)
 	if was_career_race:
 		if last_season_message != "":
 			_add_section_label(last_season_message)
@@ -1418,6 +1494,9 @@ func _load_career_save() -> void:
 	selected_event_id = str(save.get_value("career", "selected_event_id", "quarter_mile"))
 	race_event_name = str(_get_selected_event()["name"])
 	last_result = str(save.get_value("career", "last_result", "No races completed"))
+	story_stage = int(save.get_value("career", "story_stage", 0))
+	story_completed = bool(save.get_value("career", "story_completed", false))
+	last_story_message = str(save.get_value("career", "last_story_message", ""))
 	owned_cars = save.get_value("garage", "owned_cars", ["Street Compact"])
 	active_car = str(save.get_value("garage", "active_car", "Street Compact"))
 	car_upgrades = save.get_value("garage", "car_upgrades", {})
@@ -1462,6 +1541,9 @@ func _save_career() -> void:
 	save.set_value("career", "best_win_streak", best_win_streak)
 	save.set_value("career", "selected_event_id", selected_event_id)
 	save.set_value("career", "last_result", last_result)
+	save.set_value("career", "story_stage", story_stage)
+	save.set_value("career", "story_completed", story_completed)
+	save.set_value("career", "last_story_message", last_story_message)
 	save.set_value("garage", "owned_cars", owned_cars)
 	save.set_value("garage", "active_car", active_car)
 	save.set_value("garage", "car_upgrades", car_upgrades)
