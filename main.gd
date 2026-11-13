@@ -1538,6 +1538,18 @@ func _show_subpage(page_title: String, body: String, back_caption: String) -> vo
 	back_button.pressed.connect(_show_career_dashboard)
 	section_panel.add_child(back_button)
 
+func _add_story_race_button(button_text: String, event_id: String) -> void:
+	var race_button := _make_button(button_text, Color("#b34d43"))
+	race_button.add_theme_color_override("font_color", Color.WHITE)
+	race_button.pressed.connect(func():
+		selected_event_id = event_id
+		story_race_active = true
+		career_race = true
+		_start_race()
+	)
+	section_panel.add_child(race_button)
+
+
 func _show_story_missions() -> void:
 	menu_panel.hide()
 	race_panel.hide()
