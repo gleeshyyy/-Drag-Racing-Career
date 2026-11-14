@@ -8,6 +8,7 @@ const makeElement = () => ({
   value: '', textContent: '', innerHTML: '', disabled: false,
   dataset: {}, style: { left: '42%' },
   classList: { add() {}, remove() {}, contains() { return false; } },
+  remove() {},
   animate() {}, setAttribute() {}, focus() {}, querySelector() { return makeElement(); }
 });
 const document = {
@@ -45,7 +46,7 @@ vm.runInNewContext(source + `
 globalThis.__test = {
   startCareer, renderGarage, renderRacing, renderManagement, finishRace, endWeek, go, buyCar, upgrade, payChildSupport, selectEvent, stageRace,
   getState: () => state, getSelectedEvent: () => selectedEvent,
-  getSeasonEvent: () => currentSeasonEvent()
+  getSeasonEvent: () => currentSeasonEvent(), applyStoryChoice
 };
 `, context, { filename: 'app.js' });
 const game = context.__test;
@@ -57,6 +58,8 @@ assert.equal(state.driver, 'Test driver');
 assert.deepEqual(Array.from(state.ownedCars), ['Starter Coupe']);
 assert.deepEqual(Array.from(state.upgrades), []);
 assert.equal(state.season.week, 1);
+assert.equal(state.path, 'Street Underground');
+assert.equal(eventEntryFee(EVENTS[0]),150);
 
 state.cash = 5000;
 game.upgrade();
@@ -101,6 +104,8 @@ game.go('racing');
 assert.equal(game.getSelectedEvent(), 1);
 game.finishRace(false, 2.5, 'RED LIGHT — FALSE START', 1.5, 0);
 assert.equal(state.season.rivalPoints.Viper, 20, 'red-light false start awards round points to rival');
+assert.notEqual(state.bestET,2.5,'false starts must not set a personal best');
+assert.equal(state.history[0].et,'DQ','false starts must be recorded as disqualifications');
 
 game.endWeek();
 assert.equal(state.season.week, 3);
@@ -140,6 +145,8 @@ assert.ok(storage.has('dragless-rivalry-career-v1'), 'career save should persist
 
 state.reputation = 40;
 state.cash = 5000;
+state.path='Rookie League';
+assert.equal(eventEntryFee(EVENTS[3]),800,'Rookie League receives 20% off entry');
 game.renderRacing();
 assert.match(document.getElementById('screen').innerHTML, /MIDNIGHT INVITATIONAL/);
 assert.equal(game.selectEvent(3), true, 'the invitational should unlock at 40 reputation');
@@ -147,10 +154,11 @@ const roundsBeforeInvite = state.season.rounds.length;
 const pointsBeforeInvite = state.season.points;
 const cashBeforeInvite = state.cash;
 game.stageRace();
-assert.equal(state.cash, cashBeforeInvite - 1000, 'invitational entry fee should be charged');
+assert.equal(state.cash, cashBeforeInvite - 800, 'Rookie League discount should apply to invitational');
 game.finishRace(true, 11.4, 'WIN — YOU BEAT VIPER', 0.2, 11.8);
 assert.ok(state.cash >= cashBeforeInvite - 1000 + 4000, 'invitational win should pay its prize, plus any completed weekly bonus');
 assert.equal(state.season.rounds.length, roundsBeforeInvite, 'invitational should not consume a championship round');
 assert.equal(state.season.points, pointsBeforeInvite, 'invitational should not award championship points');
+const beforeRepeat=state.cash;game.finishRace(true,11.3,'WIN — YOU BEAT VIPER',.2,11.8);assert.ok(state.cash-beforeRepeat<4000,'repeat invitational wins should have reduced exhibition payouts');
 
 console.log('PASS: fresh career, garage, race entry, race cancellation, round scoring, false starts, forfeits, season rollover and local save.');
