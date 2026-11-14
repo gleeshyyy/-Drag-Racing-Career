@@ -46,7 +46,7 @@ vm.runInNewContext(source + `
 globalThis.__test = {
   startCareer, renderGarage, renderRacing, renderManagement, finishRace, endWeek, go, buyCar, upgrade, payChildSupport, selectEvent, stageRace,
   getState: () => state, getSelectedEvent: () => selectedEvent,
-  getSeasonEvent: () => currentSeasonEvent(), eventEntryFee, applyStoryChoice
+  getSeasonEvent: () => currentSeasonEvent(), getEvent: i => EVENTS[i], eventEntryFee, applyStoryChoice
 };
 `, context, { filename: 'app.js' });
 const game = context.__test;
@@ -60,7 +60,7 @@ assert.deepEqual(Array.from(state.ownedCars), ['Starter Coupe']);
 assert.deepEqual(Array.from(state.upgrades), []);
 assert.equal(state.season.week, 1);
 assert.equal(state.path, 'Street Underground');
-assert.equal(game.eventEntryFee(EVENTS[0]),150);
+assert.equal(game.eventEntryFee(game.getEvent(0)),150);
 
 state.cash = 5000;
 game.upgrade();
@@ -149,7 +149,7 @@ assert.ok(storage.has('dragless-rivalry-career-v1'), 'career save should persist
 state.reputation = 40;
 state.cash = 5000;
 state.path='Rookie League';
-assert.equal(game.eventEntryFee(EVENTS[3]),800,'Rookie League receives 20% off entry');
+assert.equal(game.eventEntryFee(game.getEvent(3)),800,'Rookie League receives 20% off entry');
 game.renderRacing();
 assert.match(document.getElementById('screen').innerHTML, /MIDNIGHT INVITATIONAL/);
 assert.equal(game.selectEvent(3), true, 'the invitational should unlock at 40 reputation');
