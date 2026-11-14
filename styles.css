@@ -88,3 +88,8 @@
 .race-track.environment-coastal:before{background:radial-gradient(ellipse at 85% 100%,#4ed6d055,transparent 38%),linear-gradient(180deg,#75a9a6,#315e68 70%,#13252d)}
 .race-track.environment-desert .lane,.race-track.environment-night .lane,.race-track.environment-coastal .lane{background:linear-gradient(180deg,#26333d,#121b25 45%,#0b1219)}
 @media(max-width:520px){.custom-row{align-items:flex-start;flex-direction:column}.race-controls{width:100%;flex-wrap:wrap}.track-environment{align-items:flex-start;flex-direction:column}.track-environment span{text-align:left}}
+
+/* Custom setup is carried onto the strip */
+.lane-car.player{background:linear-gradient(180deg,color-mix(in srgb,var(--car-paint,#20c8ed) 65%,white) 0%,var(--car-paint,#20c8ed) 34%,color-mix(in srgb,var(--car-paint,#20c8ed) 40%,black) 100%)}
+.lane-car.player:after{background:radial-gradient(circle at 15% 50%,#080b10 0 6px,var(--rim-color,#b9c7d2) 6.5px 8px,transparent 8.5px),radial-gradient(circle at 83% 50%,#080b10 0 6px,var(--rim-color,#b9c7d2) 6.5px 8px,transparent 8.5px)}
+.garage-preview .lane-car[style*="--spoiler:1"]{box-shadow:0 -7px 0 -2px #e7edf2,0 8px 12px #0009}
