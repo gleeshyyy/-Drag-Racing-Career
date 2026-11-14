@@ -27,7 +27,7 @@ const server = http.createServer((req, res) => {
     page.on('pageerror', error => pageErrors.push(error.message));
     await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
     assert.match(await page.title(), /Dragless Rivalry/);
-    await page.locator('#global-menu [data-go="create"]').click();
+    await page.locator('#screen [data-go="create"]').click();
     await page.locator('#driver-name').fill('Browser Tester');
     await page.locator('#begin-career').click();
     await page.locator('[data-story-choice="street"]').click();
