@@ -17,6 +17,7 @@ Open `index.html` in a modern mobile or desktop browser. No build step or server
 - Court-ordered child support: automatic payment every four career weeks, arrears tracking and manual partial repayment.
 - Story choices involving Jasper, Jax, Viper and Rex, with one-time decisions and a journal.
 - Eight-round championship season with a fixed event calendar, player/rival points, missed-round forfeits, standings, title rewards and past-season records.
+- Midnight Invitational side event unlocked at 40 reputation, with a $1,000 entry fee and $4,000 winner payout; it does not alter championship standings.
 
 ## Automated validation
 GitHub Actions runs:
