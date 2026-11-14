@@ -163,5 +163,6 @@ assert.ok(state.cash >= cashBeforeInvite - 1000 + 4000, 'invitational win should
 assert.equal(state.season.rounds.length, roundsBeforeInvite, 'invitational should not consume a championship round');
 assert.equal(state.season.points, pointsBeforeInvite, 'invitational should not award championship points');
 const beforeRepeat=state.cash;game.finishRace(true,11.3,'WIN — YOU BEAT VIPER',.2,11.8);assert.ok(state.cash-beforeRepeat<4000,'repeat invitational wins should have reduced exhibition payouts');
+assert.equal(state.eventAttempts[state.week+':Midnight Invitational'],2,'event attempt counts persist independently of short race history');
 
 console.log('PASS: fresh career, garage, race entry, race cancellation, round scoring, false starts, forfeits, season rollover and local save.');
