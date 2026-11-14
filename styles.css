@@ -22,3 +22,5 @@
 
 /* Race telemetry feedback */
 .shift-feedback{display:inline-block;margin:8px 0 2px;padding:6px 10px;border:1px solid #52697b;background:#101e2a;color:#c8d6e1;font:800 13px 'Rajdhani';letter-spacing:1.2px}.shift-feedback.perfect{color:#79ffc0;border-color:#3b9f75;background:#10291f}.shift-feedback.clean{color:#73e4ff;border-color:#347c95;background:#10232d}.shift-feedback.missed{color:#ffb36b;border-color:#99633c;background:#2b1c12}.shift-meter span{transition:left .12s,width .12s;box-shadow:0 0 14px #55ffc077}.shift-readout{font:800 15px 'Rajdhani';letter-spacing:1px;color:#d8e5ee}
+
+.shift-summary{margin:12px 0 4px;padding:9px 11px;border-left:3px solid var(--cyan);background:#10212d;color:#9feaff;font:700 12px 'Rajdhani';letter-spacing:.8px}
