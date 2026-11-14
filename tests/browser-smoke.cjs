@@ -41,6 +41,7 @@ const server = http.createServer((req, res) => {
     await page.locator('#camera-toggle').click();
     assert.doesNotMatch(await page.locator('.race-track').getAttribute('class'), /camera-top/);
     await page.locator('#stage-race').click();
+    assert.equal(await page.locator('#end-week').isDisabled(), true, 'END WEEK must be locked during an active race');
     await page.waitForFunction(() => window.scrollY > 0, { timeout: 3000 });
     assert.ok(await page.locator('.race-track').isVisible(), 'racing strip should be brought into view after staging');
     await page.waitForFunction(() => document.querySelector('#launch-car')?.textContent === 'LAUNCH NOW', { timeout: 5000 });
@@ -53,6 +54,7 @@ const server = http.createServer((req, res) => {
     assert.match(await resultDialog.innerText(), /NET RACE CASH/);
     assert.match(await resultDialog.innerText(), /REACTION TIME/);
     await resultDialog.locator('[data-result-action="career"]').click();
+    assert.equal(await page.locator('#end-week').isDisabled(), false, 'END WEEK unlocks after the race finishes');
     await page.locator('#global-menu [data-go="dashboard"]').click();
     await page.locator('#global-menu [data-go="management"]').click();
     assert.match(await page.locator('#screen').innerText(), /CHAMPIONSHIP CALENDAR/);
