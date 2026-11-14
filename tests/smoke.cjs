@@ -53,6 +53,7 @@ const game = context.__test;
 
 document.getElementById('driver-name').value = 'test driver';
 game.startCareer();
+game.applyStoryChoice('street');
 let state = game.getState();
 assert.equal(state.driver, 'Test driver');
 assert.deepEqual(Array.from(state.ownedCars), ['Starter Coupe']);
@@ -83,6 +84,8 @@ const startingCash = state.cash;
 context.__test = game;
 vm.runInNewContext('stageRace()', context);
 assert.equal(state.cash, startingCash - 150, 'race entry must be charged at staging');
+assert.equal(game.endWeek(),false,'week cannot advance during a staged race');
+assert.equal(state.week,1,'blocked END WEEK must not advance the calendar');
 game.go('dashboard');
 assert.equal(state.cash, startingCash - 150, 'leaving a staged race must not refund entry');
 
