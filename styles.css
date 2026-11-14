@@ -60,3 +60,31 @@
 .race-track.camera-top.race-running .lane-car{animation-name:car-launch-top}
 @keyframes car-launch-top{from{translate:0 0}to{translate:0 18px}}
 @media(max-width:600px){.lane{height:60px}.lane-car{width:88px;height:39px;top:9px}.lane-car:before{left:23px;width:42px;height:16px}}
+
+
+/* MILESTONE 3 — GARAGE CUSTOMIZATION */
+.garage-preview{height:105px;display:flex;align-items:center;padding:12px 22px;margin:16px 0;background:linear-gradient(180deg,#263743,#101923 60%,#080d13);border:1px solid #385266;overflow:hidden}
+.garage-preview .lane-car{position:relative;display:block;left:0;top:0;width:150px;height:52px;background:linear-gradient(180deg,color-mix(in srgb,var(--car-paint,#20c8ed) 65%,white),var(--car-paint,#20c8ed) 48%,color-mix(in srgb,var(--car-paint,#20c8ed) 45%,black));border-right:0;transition:background .2s}
+.garage-preview .lane-car:after{background:radial-gradient(circle at 15% 50%,#080b10 0 7px,var(--rim-color,#b9c7d2) 7.5px 9px,transparent 9.5px),radial-gradient(circle at 83% 50%,#080b10 0 7px,var(--rim-color,#b9c7d2) 7.5px 9px,transparent 9.5px)}
+.garage-preview .lane-car:before{left:39px;width:68px;height:22px}
+.garage-preview .lane-car:after{box-shadow:var(--spoiler,0) 0 0 transparent}
+.customization-panel{margin-top:16px}
+.customization-panel h3{font:800 22px 'Barlow Condensed';margin:18px 0 8px;color:#eaf4fa}
+.custom-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid #293d4e}
+.custom-row>b{font:700 14px 'Rajdhani';letter-spacing:.7px;color:#dce8ef}
+.swatch-row{display:flex;gap:8px;flex-wrap:wrap}
+.paint-swatch{width:29px;height:29px;border-radius:50%;border:2px solid #526879;background:var(--swatch);cursor:pointer;box-shadow:inset 0 0 0 2px #101923}
+.paint-swatch.selected{outline:2px solid #fff;outline-offset:2px}
+.race-controls{display:flex;align-items:center;gap:8px}
+.race-controls select{max-width:145px;background:#0a1520;color:#dce8ef;border:1px solid #486174;padding:9px;font:700 11px 'Rajdhani';letter-spacing:.5px}
+.track-environment{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 11px;margin:6px 0 12px;background:#08131dc9;border:1px solid #52687966}
+.track-environment b{font:800 15px 'Barlow Condensed';letter-spacing:1px;color:#f1f7fa}
+.track-environment span{font-size:11px;color:#a6bac8;text-align:right}
+.race-track.environment-desert{background:linear-gradient(180deg,#6b563a 0%,#493b2c 40%,#111821 100%)}
+.race-track.environment-desert:before{background:radial-gradient(ellipse at 18% 100%,#ffd17a55,transparent 35%),linear-gradient(180deg,#bd8950 0%,#735438 70%,#2a241e 100%)}
+.race-track.environment-night{background:linear-gradient(180deg,#1c1b42,#111827 48%,#080e15)}
+.race-track.environment-night:before{background:radial-gradient(ellipse at 20% 100%,#a44bff44,transparent 32%),radial-gradient(ellipse at 80% 100%,#29d9ff33,transparent 32%),linear-gradient(180deg,#30265c,#111827)}
+.race-track.environment-coastal{background:linear-gradient(180deg,#376777,#1a3c4c 48%,#080e15)}
+.race-track.environment-coastal:before{background:radial-gradient(ellipse at 85% 100%,#4ed6d055,transparent 38%),linear-gradient(180deg,#75a9a6,#315e68 70%,#13252d)}
+.race-track.environment-desert .lane,.race-track.environment-night .lane,.race-track.environment-coastal .lane{background:linear-gradient(180deg,#26333d,#121b25 45%,#0b1219)}
+@media(max-width:520px){.custom-row{align-items:flex-start;flex-direction:column}.race-controls{width:100%;flex-wrap:wrap}.track-environment{align-items:flex-start;flex-direction:column}.track-environment span{text-align:left}}
