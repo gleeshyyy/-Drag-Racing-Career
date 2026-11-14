@@ -24,3 +24,39 @@
 .shift-feedback{display:inline-block;margin:8px 0 2px;padding:6px 10px;border:1px solid #52697b;background:#101e2a;color:#c8d6e1;font:800 13px 'Rajdhani';letter-spacing:1.2px}.shift-feedback.perfect{color:#79ffc0;border-color:#3b9f75;background:#10291f}.shift-feedback.clean{color:#73e4ff;border-color:#347c95;background:#10232d}.shift-feedback.missed{color:#ffb36b;border-color:#99633c;background:#2b1c12}.shift-meter span{transition:left .12s,width .12s;box-shadow:0 0 14px #55ffc077}.shift-readout{font:800 15px 'Rajdhani';letter-spacing:1px;color:#d8e5ee}
 
 .shift-summary{margin:12px 0 4px;padding:9px 11px;border-left:3px solid var(--cyan);background:#10212d;color:#9feaff;font:700 12px 'Rajdhani';letter-spacing:.8px}
+
+
+/* MILESTONE 2 — VEHICLE AND STRIP VISUAL UPGRADE */
+.race-track{position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(180deg,#182b3b 0%,#111d29 37%,#080e15 100%)}
+.race-track:before{content:"";position:absolute;z-index:-1;inset:0 0 48%;background:radial-gradient(ellipse at 18% 100%,#f6a64b22,transparent 28%),linear-gradient(180deg,#263c4b 0%,#142331 70%,#0b151e 100%)}
+.race-track:after{content:"";position:absolute;z-index:-1;left:0;right:0;top:47%;height:9px;background:repeating-linear-gradient(90deg,#f5f0d8 0 18px,transparent 18px 32px);opacity:.22;box-shadow:0 10px 24px #0008}
+.race-track-head,.starting-tree,.track-lanes,.race-result,.launch-button{position:relative;z-index:1}
+.track-lanes{position:relative;padding:10px 0 16px;background:linear-gradient(180deg,#101923aa,#080d14cc);border-top:1px solid #52687955;border-bottom:1px solid #52687955}
+.lane{height:66px;background:linear-gradient(180deg,#28333c,#151e27 42%,#101821);box-shadow:inset 0 7px 12px #0006,inset 0 -7px 12px #0007}
+.lane:before{content:"";position:absolute;left:0;right:0;top:5px;border-top:1px solid #e7f3ff18}
+.lane:after{top:50%;border-color:#f0d58c88}
+.lane-car{width:104px;height:43px;top:10px;left:8%;clip-path:none;border-radius:28px 34px 9px 10px;background:linear-gradient(180deg,#ffc66c 0%,#e76b35 32%,#922f25 78%,#4a1d20 100%);filter:drop-shadow(0 8px 5px #000b);transform:skewX(-5deg)}
+.lane-car:before{content:"";position:absolute;left:27px;top:2px;width:48px;height:18px;background:linear-gradient(145deg,#d9f6ff 0%,#487b91 55%,#172b3a 100%);clip-path:polygon(18% 0,82% 0,100% 100%,0 100%);border:1px solid #d8f7ff88;box-shadow:inset 0 0 8px #fff8}
+.lane-car:after{content:"";position:absolute;left:13px;right:9px;bottom:-3px;height:13px;border-radius:9px;background:radial-gradient(circle at 15% 50%,#080b10 0 6px,#8595a0 6.5px 8px,transparent 8.5px),radial-gradient(circle at 83% 50%,#080b10 0 6px,#8595a0 6.5px 8px,transparent 8.5px)}
+.lane-car.player{background:linear-gradient(180deg,#b5fbff 0%,#22c6e8 34%,#08729e 78%,#07354f 100%);box-shadow:0 0 17px #2bdcff55}
+.lane-car.player:before{background:linear-gradient(145deg,#e9ffff,#3f8ea6 58%,#122b3a)}
+.lane-car.rival-car{background:linear-gradient(180deg,#ff9aa2 0%,#e83d55 35%,#91283c 78%,#421b2a 100%)}
+.lane-car.rival-car:before{background:linear-gradient(145deg,#ffe7e8,#a34a58 58%,#2c1c29)}
+.lane-car.rival-car{border-right:8px solid #ffcf70}
+.lane-car.player{border-right:8px solid #eaffff}
+.race-track.camera-top .track-lanes{background:linear-gradient(90deg,#080e15,#17232e 50%,#080e15)}
+.race-track.camera-top .lane{background:repeating-linear-gradient(180deg,#26343e 0 34px,#17232d 34px 68px);box-shadow:inset 7px 0 12px #0007,inset -7px 0 12px #0007}
+.race-track.camera-top .lane-car{width:48px;height:91px;left:calc(50% - 24px);top:10%;border-radius:14px 14px 8px 8px;transform:none;clip-path:polygon(50% 0,82% 9%,100% 25%,100% 85%,84% 100%,16% 100%,0 85%,0 25%,18% 9%)}
+.race-track.camera-top .lane-car:before{left:8px;top:17px;width:32px;height:37px;clip-path:polygon(12% 0,88% 0,100% 100%,0 100%)}
+.race-track.camera-top .lane-car:after{left:-3px;right:-3px;bottom:10px;height:13px;border-radius:5px;background:linear-gradient(90deg,#080b10 0 7px,transparent 7px calc(100% - 7px),#080b10 calc(100% - 7px))}
+.race-track.race-running .lane-car{animation:car-launch 1.1s cubic-bezier(.18,.7,.2,1) infinite alternate}
+.race-track.race-running .lane-car.player{animation-delay:.08s}
+.race-track.race-running .lane-car.rival-car{animation-delay:.2s}
+.race-track.race-finished .lane-car{filter:drop-shadow(0 0 12px #fff8)}
+.race-track.race-finished:after{opacity:.65;background:repeating-linear-gradient(90deg,#fff 0 12px,#111 12px 24px)}
+.race-track.race-running .starting-tree .green-light.lit{animation:green-pulse .65s ease-in-out infinite alternate}
+@keyframes car-launch{from{translate:0 0}to{translate:22px 0}}
+@keyframes green-pulse{to{box-shadow:0 0 28px #68ffb2,0 0 50px #68ffb277}}
+.race-track.camera-top.race-running .lane-car{animation-name:car-launch-top}
+@keyframes car-launch-top{from{translate:0 0}to{translate:0 18px}}
+@media(max-width:600px){.lane{height:60px}.lane-car{width:88px;height:39px;top:9px}.lane-car:before{left:23px;width:42px;height:16px}}
