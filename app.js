@@ -50,10 +50,10 @@ function finishRace(won,et,label,reaction=0,rivalEt=0,shiftGrades=[]){
  state.races++;
  const conditionLoss=won?5:8;
  state.condition=Math.max(0,state.condition-conditionLoss);
- let reward=won?event.win:validRun?100:0;if(exhibition)reward=Math.floor(reward*.35);
+ let reward=won?event.win:validRun?100:0;if(exhibition)reward=Math.floor(reward*.2);
  let milestoneBonus=0,weeklyBonus=0,sponsorBonus=0;
  if(won){
-  state.wins++;state.eventWins=(state.eventWins||0)+1;state.reputation+=exhibition?Math.max(1,Math.floor(event.rep*.25)):event.rep;if(state.path==='Street Underground'&&!exhibition)state.reputation+=2;
+  state.wins++;state.eventWins=(state.eventWins||0)+1;state.reputation+=exhibition?1:event.rep;if(state.path==='Street Underground'&&!exhibition)state.reputation+=2;
   if(!exhibition)state.championshipPoints+=event.points;state.rivalWins[event.rival]=(state.rivalWins[event.rival]||0)+1;
  }else if(label.startsWith('RED')){state.reputation=Math.max(0,state.reputation-2)}
  else{state.reputation+=3}
