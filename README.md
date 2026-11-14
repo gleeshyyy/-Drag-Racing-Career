@@ -10,6 +10,7 @@ Open `index.html` in a modern mobile or desktop browser. No build step or server
 - Local browser save with migration defaults for older career data.
 - Career dashboard: cash, wins, reputation, driver level, vehicle condition and navigation.
 - Drag race: staging tree, reaction timing, false starts, three gear shifts, quarter-mile ET and rival comparison.
+- Designed post-race results dialog with win/loss banner, opponent and track details, reaction time, ET comparison, gear-shift grades, vehicle condition, entry fee, payout, bonus breakdown, net race cash and updated balance.
 - Race entry fees are charged at staging; leaving a staged race stops the race timer and does not refund the entry.
 - Side-view and optional top-down race camera.
 - Garage with four vehicles, ownership, vehicle-specific tuning persistence, performance upgrades, repairs and personal best.
