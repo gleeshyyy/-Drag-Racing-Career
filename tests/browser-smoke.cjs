@@ -27,15 +27,15 @@ const server = http.createServer((req, res) => {
     page.on('pageerror', error => pageErrors.push(error.message));
     await page.goto('http://127.0.0.1:4173', { waitUntil: 'domcontentloaded' });
     assert.match(await page.title(), /Dragless Rivalry/);
-    await page.locator('[data-go="create"]').click();
+    await page.locator('#global-menu [data-go="create"]').click();
     await page.locator('#driver-name').fill('Browser Tester');
     await page.locator('#begin-career').click();
     await page.locator('[data-story-choice="street"]').click();
     await page.locator('#global-menu [data-go="dashboard"]').click();
-    await page.locator('[data-go="garage"]').click();
+    await page.locator('#global-menu [data-go="garage"]').click();
     assert.match(await page.locator('#screen').innerText(), /VEHICLE DEALERSHIP/);
     await page.locator('#global-menu [data-go="dashboard"]').click();
-    await page.locator('[data-go="racing"]').first().click();
+    await page.locator('#global-menu [data-go="racing"]').first().click();
     await page.locator('#camera-toggle').click();
     assert.match(await page.locator('.race-track').getAttribute('class'), /camera-top/);
     await page.locator('#camera-toggle').click();
@@ -46,7 +46,7 @@ const server = http.createServer((req, res) => {
     for (let i = 0; i < 3; i++) await page.locator('#launch-car').click();
     await page.waitForFunction(() => /WIN|RUNNER-UP|RED LIGHT/.test(document.querySelector('#race-result')?.innerText || ''));
     await page.locator('#global-menu [data-go="dashboard"]').click();
-    await page.locator('[data-go="management"]').click();
+    await page.locator('#global-menu [data-go="management"]').click();
     assert.match(await page.locator('#screen').innerText(), /CHAMPIONSHIP CALENDAR/);
     await page.reload();
     assert.match(await page.locator('#screen').innerText(), /CONTINUE CAREER/);
