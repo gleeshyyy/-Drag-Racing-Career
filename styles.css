@@ -93,3 +93,29 @@
 .lane-car.player{background:linear-gradient(180deg,color-mix(in srgb,var(--car-paint,#20c8ed) 65%,white) 0%,var(--car-paint,#20c8ed) 34%,color-mix(in srgb,var(--car-paint,#20c8ed) 40%,black) 100%)}
 .lane-car.player:after{background:radial-gradient(circle at 15% 50%,#080b10 0 6px,var(--rim-color,#b9c7d2) 6.5px 8px,transparent 8.5px),radial-gradient(circle at 83% 50%,#080b10 0 6px,var(--rim-color,#b9c7d2) 6.5px 8px,transparent 8.5px)}
 .garage-preview .lane-car[style*="--spoiler:1"]{box-shadow:0 -7px 0 -2px #e7edf2,0 8px 12px #0009}
+
+
+/* GLOBAL MENU + LIVE CAREER PERFORMANCE */
+.global-menu{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;border-bottom:1px solid #26394a;background:linear-gradient(90deg,#0c1722,#101c28 55%,#0a121c);position:relative;z-index:4}
+.menu-heading{display:flex;align-items:center;gap:12px;flex:0 0 auto}
+.menu-heading .eyebrow{font-size:10px;letter-spacing:3px}
+.menu-current{font:800 15px 'Barlow Condensed';letter-spacing:1px;color:#f0f6fa}
+.menu-links{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.menu-links button{border:1px solid transparent;background:transparent;color:#9eb2c2;padding:9px 12px;font:700 13px 'Barlow Condensed';letter-spacing:1px;cursor:pointer}
+.menu-links button:hover,.menu-links button.active{color:#eafaff;border-color:#2c6477;background:#123044;box-shadow:inset 0 -2px 0 var(--cyan)}
+.menu-links button:disabled{opacity:.35;cursor:not-allowed}
+.career-performance{display:grid;grid-template-columns:minmax(130px,1.35fr) repeat(4,minmax(65px,.65fr)) minmax(155px,1.3fr) minmax(120px,1fr);align-items:center;gap:10px;padding:12px 14px;margin-top:12px;border:1px solid #2b4357;background:linear-gradient(105deg,#132636,#0a131e 78%);box-shadow:0 8px 22px #0004}
+.career-performance[hidden]{display:none}
+.performance-heading{display:grid;gap:3px;min-width:0}
+.performance-heading .eyebrow{font-size:9px;letter-spacing:2px}
+.performance-heading strong{font:800 17px 'Barlow Condensed';white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.performance-stat{display:grid;gap:2px;min-width:0}
+.performance-stat small,.performance-condition small{color:#8298aa;font:700 9px Rajdhani;letter-spacing:1px}
+.performance-stat b{font:800 19px 'Barlow Condensed';white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#performance-cash{color:var(--amber)}
+.performance-condition{display:grid;grid-template-columns:1fr auto;gap:4px 8px;align-items:center}
+.performance-condition b{font:800 15px 'Barlow Condensed'}
+.performance-condition i{grid-column:1/-1;height:5px;background:#243747;overflow:hidden}
+.performance-condition i span{display:block;width:100%;height:100%;background:linear-gradient(90deg,#20bad6,#7affbd);transition:width .2s}
+@media(max-width:760px){.app-shell{padding:0 14px}.global-menu{align-items:flex-start;flex-direction:column;gap:8px}.menu-links{width:100%;justify-content:flex-start;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px}.menu-links button{flex:0 0 auto;padding:9px 11px}.career-performance{grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;padding:10px}.performance-heading{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between}.performance-heading strong{max-width:58%}.performance-car{grid-column:span 2}.performance-condition{grid-column:span 2}}
+@media(max-width:380px){.menu-links button{font-size:12px;padding:8px}.career-performance{gap:7px}.performance-stat b{font-size:17px}}
