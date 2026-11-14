@@ -8,9 +8,11 @@ const makeElement = () => ({
   value: '', textContent: '', innerHTML: '', disabled: false,
   dataset: {}, style: { left: '42%' },
   classList: { add() {}, remove() {}, contains() { return false; } },
-  animate() {}
+  animate() {}, setAttribute() {}, focus() {}, querySelector() { return makeElement(); }
 });
 const document = {
+  body: { appendChild(element) { elements.set(element.id, element); } },
+  createElement() { return makeElement(); },
   getElementById(id) {
     if (!elements.has(id)) elements.set(id, makeElement());
     return elements.get(id);
@@ -82,9 +84,14 @@ game.go('dashboard');
 assert.equal(state.cash, startingCash - 150, 'leaving a staged race must not refund entry');
 
 game.finishRace(true, 12.1, 'WIN — YOU BEAT JAX', 0.2, 12.7);
+assert.match(elements.get('race-results-modal').innerHTML, /YOU WIN/);
+assert.match(elements.get('race-results-modal').innerHTML, /REACTION TIME/);
+assert.match(elements.get('race-results-modal').innerHTML, /NET RACE CASH/);
+assert.match(elements.get('race-results-modal').innerHTML, /Race entry fee/);
 const firstRoundPoints = state.season.points;
 assert.equal(firstRoundPoints, 10);
 game.finishRace(false, 12.6, 'RUNNER-UP — JAX TAKES IT', 0.3, 12.4);
+assert.match(elements.get('race-results-modal').innerHTML, /YOU LOSE/);
 assert.equal(state.season.points, firstRoundPoints, 'only one result per round may score');
 assert.equal(state.season.rivalPoints.Jax, 0, 'a later race in a scored round must not add rival points');
 
