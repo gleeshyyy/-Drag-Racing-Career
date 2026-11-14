@@ -41,6 +41,8 @@ const server = http.createServer((req, res) => {
     await page.locator('#camera-toggle').click();
     assert.doesNotMatch(await page.locator('.race-track').getAttribute('class'), /camera-top/);
     await page.locator('#stage-race').click();
+    await page.waitForFunction(() => window.scrollY > 0, { timeout: 3000 });
+    assert.ok(await page.locator('.race-track').isVisible(), 'racing strip should be brought into view after staging');
     await page.waitForFunction(() => document.querySelector('#launch-car')?.textContent === 'LAUNCH NOW', { timeout: 5000 });
     await page.locator('#launch-car').click();
     for (let i = 0; i < 3; i++) await page.locator('#launch-car').click();
