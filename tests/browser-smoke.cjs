@@ -31,10 +31,10 @@ const server = http.createServer((req, res) => {
     await page.locator('#driver-name').fill('Browser Tester');
     await page.locator('#begin-career').click();
     await page.locator('[data-story-choice="street"]').click();
-    await page.locator('[data-go="dashboard"]').click();
+    await page.locator('#global-menu [data-go="dashboard"]').click();
     await page.locator('[data-go="garage"]').click();
     assert.match(await page.locator('#screen').innerText(), /VEHICLE DEALERSHIP/);
-    await page.locator('[data-go="dashboard"]').click();
+    await page.locator('#global-menu [data-go="dashboard"]').click();
     await page.locator('[data-go="racing"]').first().click();
     await page.locator('#camera-toggle').click();
     assert.match(await page.locator('.race-track').getAttribute('class'), /camera-top/);
@@ -45,7 +45,7 @@ const server = http.createServer((req, res) => {
     await page.locator('#launch-car').click();
     for (let i = 0; i < 3; i++) await page.locator('#launch-car').click();
     await page.waitForFunction(() => /WIN|RUNNER-UP|RED LIGHT/.test(document.querySelector('#race-result')?.innerText || ''));
-    await page.locator('[data-go="dashboard"]').click();
+    await page.locator('#global-menu [data-go="dashboard"]').click();
     await page.locator('[data-go="management"]').click();
     assert.match(await page.locator('#screen').innerText(), /CHAMPIONSHIP CALENDAR/);
     await page.reload();
