@@ -45,6 +45,12 @@ const server = http.createServer((req, res) => {
     await page.locator('#launch-car').click();
     for (let i = 0; i < 3; i++) await page.locator('#launch-car').click();
     await page.waitForFunction(() => /WIN|RUNNER-UP|RED LIGHT/.test(document.querySelector('#race-result')?.innerText || ''));
+    const resultDialog = page.locator('#race-results-modal');
+    await resultDialog.waitFor();
+    assert.match(await resultDialog.innerText(), /YOU (WIN|LOSE)/);
+    assert.match(await resultDialog.innerText(), /NET RACE CASH/);
+    assert.match(await resultDialog.innerText(), /REACTION TIME/);
+    await resultDialog.locator('[data-result-action="career"]').click();
     await page.locator('#global-menu [data-go="dashboard"]').click();
     await page.locator('#global-menu [data-go="management"]').click();
     assert.match(await page.locator('#screen').innerText(), /CHAMPIONSHIP CALENDAR/);
