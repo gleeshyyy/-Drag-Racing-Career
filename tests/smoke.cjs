@@ -41,7 +41,7 @@ const context = {
 context.globalThis = context;
 vm.runInNewContext(source + `
 globalThis.__test = {
-  startCareer, renderGarage, renderRacing, renderManagement, finishRace, endWeek, go, buyCar, upgrade, payChildSupport,
+  startCareer, renderGarage, renderRacing, renderManagement, finishRace, endWeek, go, buyCar, upgrade, payChildSupport, selectEvent, stageRace,
   getState: () => state, getSelectedEvent: () => selectedEvent,
   getSeasonEvent: () => currentSeasonEvent()
 };
@@ -129,5 +129,21 @@ assert.equal(state.sponsor, null);
 game.renderManagement();
 assert.match(document.getElementById('screen').innerHTML, /NITROLINE CONTRACT COMPLETED/);
 assert.ok(storage.has('dragless-rivalry-career-v1'), 'career save should persist');
+
+
+state.reputation = 40;
+state.cash = 5000;
+game.renderRacing();
+assert.match(document.getElementById('screen').innerHTML, /MIDNIGHT INVITATIONAL/);
+assert.equal(game.selectEvent(3), true, 'the invitational should unlock at 40 reputation');
+const roundsBeforeInvite = state.season.rounds.length;
+const pointsBeforeInvite = state.season.points;
+const cashBeforeInvite = state.cash;
+game.stageRace();
+assert.equal(state.cash, cashBeforeInvite - 1000, 'invitational entry fee should be charged');
+game.finishRace(true, 11.4, 'WIN — YOU BEAT VIPER', 0.2, 11.8);
+assert.equal(state.cash, cashBeforeInvite - 1000 + 4000, 'invitational win should pay its prize');
+assert.equal(state.season.rounds.length, roundsBeforeInvite, 'invitational should not consume a championship round');
+assert.equal(state.season.points, pointsBeforeInvite, 'invitational should not award championship points');
 
 console.log('PASS: fresh career, garage, race entry, race cancellation, round scoring, false starts, forfeits, season rollover and local save.');
