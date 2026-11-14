@@ -161,3 +161,17 @@
 @keyframes raceModalFade{from{opacity:0}to{opacity:1}}
 @media(max-width:430px){.race-modal-backdrop{padding:8px}.race-modal-topline{padding:13px 12px;font-size:9px}.race-modal-outcome{padding:18px 10px 14px}.race-modal-stats{gap:5px;padding:10px 9px}.race-modal-stats>div{padding:8px 3px}.race-modal-stats small{font-size:8px;letter-spacing:.5px}.race-modal-stats b{font-size:16px}.race-modal-shifts{margin-inline:9px}.race-modal-money{margin-inline:9px;padding:10px}.race-modal-actions{padding:12px 9px}.race-modal-actions .button{font-size:12px;letter-spacing:.7px}}
 @media(prefers-reduced-motion:reduce){.race-modal-backdrop{animation:none}}
+
+/* OFF-TRACK WORK AND PRACTICE */
+.work-board{margin-top:16px;border-color:#355267}
+.work-board h2{font:800 27px 'Barlow Condensed';margin:5px 0}
+.work-intro{color:#9bb0c1;margin:5px 0 14px}
+.work-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.work-job{display:flex;flex-direction:column;justify-content:space-between;gap:12px;padding:13px;background:#0b1722;border:1px solid #2b4356}
+.work-job b{display:block;color:#eaf4fa;font:800 15px 'Barlow Condensed';letter-spacing:.7px}
+.work-job small{display:block;margin-top:4px;color:#91a7b8;line-height:1.4}
+.work-job-foot,.work-footer{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.work-job-foot strong{color:#83ffbd;font:800 20px 'Barlow Condensed'}
+.work-footer{margin-top:13px;padding-top:12px;border-top:1px solid #2b4052;color:#9bb0c1;font-size:12px}
+.work-job .button:disabled,.work-footer .button:disabled{opacity:.55;cursor:default}
+@media(max-width:430px){.work-grid{grid-template-columns:1fr}.work-footer{align-items:flex-start;flex-direction:column}}
